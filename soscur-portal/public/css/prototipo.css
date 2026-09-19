@@ -1,0 +1,160 @@
+:root {
+  --primary: #C2502E;
+  --primary-dark: #9E3E20;
+  --bg: #F4F4F4;
+  --surface: #FFFFFF;
+  --text: #212529;
+  --muted: #6C757D;
+  --border: #DEE2E6;
+  --danger: #DC3545;
+  --success: #198754;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.navbar-soscur {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar-soscur .navbar-brand {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.navbar-soscur .nav-link,
+.navbar-soscur .nav-link.active,
+.navbar-soscur .nav-link:hover {
+  color: var(--text);
+}
+
+.btn-primary-soscur {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary-soscur:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #fff;
+}
+
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.hero {
+  background: var(--primary);
+  color: #fff;
+  border-radius: .5rem;
+}
+
+.section-title {
+  font-weight: 600;
+}
+
+.category-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+}
+
+.category-sidebar .list-group-item {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.category-sidebar .list-group-item:hover {
+  background: var(--bg);
+  color: var(--primary);
+}
+
+.course-cover {
+  height: 140px;
+  border-radius: .5rem .5rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.cover-1 { background: #C2502E; }
+.cover-2 { background: #2F7D4F; }
+.cover-3 { background: #B07D2B; }
+.cover-4 { background: #9C4F3A; }
+.cover-5 { background: #8B5E3C; }
+.cover-6 { background: #6E3B4A; }
+
+.card {
+  border-radius: .5rem;
+}
+
+.rating {
+  color: #B8860B;
+}
+
+.st-activo, .st-completado, .st-pagado { background: #D1E7DD; color: #155724; }
+.st-inactivo { background: #F8D7DA; color: #842029; }
+.st-bloqueado { background: #E2E3E5; color: #41464B; }
+.st-curso { background: #CFE2FF; color: #084298; }
+
+.role-campus { background: #E2D9F3; color: #48106B; }
+.role-instructor { background: #CDE8D5; color: #155724; }
+.role-admin { background: #F4D0E3; color: #720C3C; }
+
+.auth-box {
+  max-width: 460px;
+  margin: 4rem auto;
+}
+
+.progress {
+  height: .6rem;
+}
+
+.nav-tabs .nav-link {
+  color: var(--muted);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.table thead th {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.video-frame {
+  aspect-ratio: 16 / 9;
+  background: #212529;
+  border-radius: .5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 3rem;
+}
+
+.stat-card {
+  border-left: 4px solid var(--primary);
+}
+
+@media (max-width: 992px) {
+  .category-sidebar { display: none; }
+}

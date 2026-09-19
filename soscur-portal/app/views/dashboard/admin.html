@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOSCUR Portal — Panel Administrador</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../public/css/prototipo.css" rel="stylesheet">
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-soscur sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="../index.html"><i class="bi bi-mortarboard-fill"></i> SOSCUR Portal</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdmin">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navAdmin">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><span class="nav-link">Hola, <strong>Admin</strong></span></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="bi bi-people"></i> Cambiar rol</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="estudiante.html"><i class="bi bi-person-video3"></i> Estudiante</a></li>
+              <li><a class="dropdown-item" href="instructor.html"><i class="bi bi-easel"></i> Instructor</a></li>
+              <li><a class="dropdown-item active" href="admin.html"><i class="bi bi-shield-lock"></i> Administrador</a></li>
+            </ul>
+          </li>
+        </ul>
+        <a href="../auth/login.html" class="btn btn-outline-danger btn-sm">Cerrar sesión</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <ul class="nav nav-tabs">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-cat">Categorías</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-users">Usuarios</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-com">Comentarios</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-rep">Reporte general</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="t-cat">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="section-title mb-0">Categorías</h4>
+          <button class="btn btn-primary-soscur" data-bs-toggle="modal" data-bs-target="#modalCat"><i class="bi bi-plus-lg"></i> Nueva categoría</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>#</th><th>Nombre</th><th>Creada por</th><th class="text-end">Acciones</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Animación 2D</td><td>Dra. Ana</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCat"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCatDel"><i class="bi bi-trash"></i></button></td></tr>
+              <tr><td>2</td><td>Modelado 3D</td><td>Dra. Ana</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCat"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCatDel"><i class="bi bi-trash"></i></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="t-users">
+        <h4 class="section-title mb-3">Usuarios</h4>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+            <tbody>
+              <tr><td>Ismael Cruz V.</td><td>ismael@mail.com</td>
+                <td><span class="badge role-campus">Estudiante</span></td><td><span class="badge st-activo">Activo</span></td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalBloqueo">Bloquear</button></td></tr>
+              <tr><td>Dra. Ana</td><td>ana@mail.com</td>
+                <td><span class="badge role-instructor">Instructor</span></td><td><span class="badge st-activo">Activo</span></td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalBloqueo">Bloquear</button></td></tr>
+              <tr><td>Pedro Ramírez</td><td>pedro@mail.com</td>
+                <td><span class="badge role-campus">Estudiante</span></td><td><span class="badge st-bloqueado">Bloqueado</span></td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalBloqueo">Desbloquear</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="t-com">
+        <h4 class="section-title mb-3">Moderación de comentarios</h4>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Curso</th><th>Estudiante</th><th>Calificación</th><th>Comentario</th><th class="text-end"></th></tr></thead>
+            <tbody>
+              <tr><td>Fundamentos de Animación</td><td>María López</td><td><span class="badge st-completado">9/10</span></td>
+                <td class="text-truncate" style="max-width:280px">Muy buen curso, explica todo paso a paso.</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCom">Eliminar</button></td></tr>
+              <tr><td>Rigging de Personajes</td><td>Pedro Ramírez</td><td><span class="badge st-inactivo">2/10</span></td>
+                <td class="text-truncate" style="max-width:280px">No se entiende nada, péssimo.</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCom">Eliminar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="t-rep">
+        <h4 class="section-title mb-3">Reporte general</h4>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3"><div class="card border stat-card"><div class="card-body"><div class="text-muted small">Usuarios totales</div><h4>34</h4></div></div></div>
+          <div class="col-6 col-md-3"><div class="card border stat-card"><div class="card-body"><div class="text-muted small">Cursos</div><h4>8</h4></div></div></div>
+          <div class="col-6 col-md-3"><div class="card border stat-card"><div class="card-body"><div class="text-muted small">Inscripciones</div><h4>96</h4></div></div></div>
+          <div class="col-6 col-md-3"><div class="card border stat-card"><div class="card-body"><div class="text-muted small">Ingresos</div><h4>$42,300</h4></div></div></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Rol</th><th>Activos</th><th>Bloqueados</th><th>Total</th></tr></thead>
+            <tbody>
+              <tr><td>Estudiante</td><td>25</td><td>2</td><td>27</td></tr>
+              <tr><td>Instructor</td><td>5</td><td>1</td><td>6</td></tr>
+              <tr><td>Administrador</td><td>1</td><td>0</td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="modalCat">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nueva / Editar categoría</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="form-label">Nombre</label><input class="form-control" placeholder="Ej. Animación 2D">
+        <label class="form-label mt-3">Descripción</label><textarea class="form-control" rows="2"></textarea>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary-soscur">Guardar</button></div>
+    </div></div>
+  </div>
+
+  <div class="modal fade" id="modalCatDel">
+    <div class="modal-dialog modal-sm"><div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Eliminar categoría</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">¿Seguro que deseas eliminar esta categoría?</div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger">Sí, eliminar</button></div>
+    </div></div>
+  </div>
+
+  <div class="modal fade" id="modalBloqueo">
+    <div class="modal-dialog modal-sm"><div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Bloquear / Desbloquear usuario</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><label class="form-label">Motivo (opcional)</label><input class="form-control" placeholder="Causa del bloqueo"></div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger">Confirmar</button></div>
+    </div></div>
+  </div>
+
+  <div class="modal fade" id="modalCom">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Eliminar comentario</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">Requieres registrar una causa para la moderación.</p>
+        <label class="form-label">Causa de eliminación <span class="text-danger">*</span></label>
+        <textarea class="form-control" rows="2" required></textarea>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger">Eliminar comentario</button></div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../public/js/prototipo.js"></script>
+</body>
+</html>
