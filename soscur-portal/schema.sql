@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS soscur_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE soscur_db;
 
--- 1. usuarios (Diapositiva 10)
+--usuarios 
 CREATE TABLE IF NOT EXISTS usuarios (
     usuario_id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     bloqueado BOOLEAN NOT NULL DEFAULT FALSE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. categorias (Diapositiva 14)
+-- categorias 
 CREATE TABLE IF NOT EXISTS categorias (
     categoria_id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS categorias (
     FOREIGN KEY (creado_por) REFERENCES usuarios(usuario_id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. cursos (Diapositiva 11)
+--cursos 
 CREATE TABLE IF NOT EXISTS cursos (
     curso_id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(150) NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS cursos (
     FOREIGN KEY (categoria_id) REFERENCES categorias(categoria_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 4. niveles (Diapositiva 12 - Módulos del curso)
+--niveles
 CREATE TABLE IF NOT EXISTS niveles (
     nivel_id INT AUTO_INCREMENT PRIMARY KEY,
     curso_id INT NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS niveles (
     FOREIGN KEY (curso_id) REFERENCES cursos(curso_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. inscripciones (Diapositiva 13)
+-- inscripciones
 CREATE TABLE IF NOT EXISTS inscripciones (
     inscripcion_id INT AUTO_INCREMENT PRIMARY KEY,
     estudiante_id INT NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS inscripciones (
     FOREIGN KEY (curso_id) REFERENCES cursos(curso_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. comentarios (Diapositiva 15)
+--comentarios
 CREATE TABLE IF NOT EXISTS comentarios (
     comentario_id INT AUTO_INCREMENT PRIMARY KEY,
     curso_id INT NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS comentarios (
     FOREIGN KEY (estudiante_id) REFERENCES usuarios(usuario_id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 7. diplomas (Diapositiva 16)
+-- diplomas
 CREATE TABLE IF NOT EXISTS diplomas (
     diploma_id INT AUTO_INCREMENT PRIMARY KEY,
     inscripcion_id INT NOT NULL UNIQUE,

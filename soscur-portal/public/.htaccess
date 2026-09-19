@@ -5,12 +5,12 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Archivos y carpetas reales (css, js, img) se sirven directo
+    # Archivos y carpetas reales como: css, js, img se sirven directo
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # El resto va al front controller conservando la query string
+    # El resto va al front controller pero quedandose la query string
     RewriteRule ^ index.php [QSA,L]
 </IfModule>
 

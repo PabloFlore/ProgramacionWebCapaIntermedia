@@ -27,7 +27,7 @@ secrets/
 /tmp/
 /cache/
 
-# Carpeta de subidas versionada solo con su .gitkeep
+# Carpeta de subidas solo con su .gitkeep
 /public/uploads/*
 !/public/uploads/.gitkeep
 
