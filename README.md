@@ -54,3 +54,26 @@ El proyecto sigue una arquitectura  en tres capas sin mezclar consultas a la BD 
 └── database/            -- Script SQL de creación de la base de datos
     └── schema.sql
 ```
+
+Base de Datos
+
+El esquema incluye perfiles de usuario, verificación de correo, "recordarme", recuperación de contraseña, bloqueo con motivo, modalidad de precio por curso o por nivel, material complementario por nivel, progreso por nivel, estado de pago y moderación de comentarios con causa.
+
+- `schema.sql`: esquema completo para una instalación nueva.
+- `migrations/001_align_schema_ui.sql`: migración para una base `soscur_db` creada con el esquema anterior.
+- `seed.sql`: datos de demostración alineados con el prototipo. Todos los usuarios demo usan la contraseña `Password1!`.
+
+Instalación desde cero:
+
+```bash
+mysql -u root -p < schema.sql
+mysql -u root -p < seed.sql
+```
+
+Si la base ya existe, ejecutar solo la migración:
+
+```bash
+mysql -u root -p soscur_db < migrations/001_align_schema_ui.sql
+```
+
+Las calificaciones se guardan en escala `1–10`. Las vistas públicas pueden mostrar el promedio como estrellas usando `AVG(calificacion) / 2`.
