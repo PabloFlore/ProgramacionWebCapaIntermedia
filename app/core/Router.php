@@ -26,10 +26,36 @@ class Router
         $uri = $this->normalize(parse_url($uri, PHP_URL_PATH) ?? '/');
         $method = strtoupper($method);
 
-        if (isset($this->routes[$method][$uri])) {
-            $action = $this->routes[$method][$uri];
-            $this->callAction($action);
+        $match = $this->match($method, $uri);
+        if ($match !== null) {
+            $this->callAction($match['action'], $match['params']);
             return;
+        }
+
+        $allowed = [];
+        foreach (array_keys($this->routes) as $otherMethod) {
+            if ($otherMethod !== $method && $this->match($otherMethod, $uri) !== null) {
+                $allowed[] = $otherMethod;
+            }
+        }
+
+        if ($allowed !== []) {
+            header('Allow: ' . implode(', ', $allowed));
+            $this->sendError(405, 'Método no permitido', str_starts_with($uri, '/api/'));
+            return;
+        }
+
+        $this->sendError(404, 'Ruta no encontrada', str_starts_with($uri, '/api/'));
+    }
+
+    private function match(string $method, string $uri): ?array
+    {
+        if (!isset($this->routes[$method])) {
+            return null;
+        }
+
+        if (isset($this->routes[$method][$uri])) {
+            return ['action' => $this->routes[$method][$uri], 'params' => []];
         }
 
         foreach ($this->routes[$method] as $route => $action) {
@@ -38,21 +64,25 @@ class Router
 
             if (preg_match($pattern, $uri, $matches)) {
                 array_shift($matches);
-                $this->callAction($action, $matches);
-                return;
+                return ['action' => $action, 'params' => $matches];
             }
         }
 
-        http_response_code(404);
+        return null;
+    }
 
-        if (str_starts_with($uri, '/api/')) {
+    private function sendError(int $status, string $message, bool $json): void
+    {
+        http_response_code($status);
+
+        if ($json) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['error' => 'Ruta no encontrada'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         header('Content-Type: text/plain; charset=utf-8');
-        echo '404 Not Found';
+        echo $status . ' ' . $message;
     }
 
     private function callAction(callable|array $action, array $params = []): void

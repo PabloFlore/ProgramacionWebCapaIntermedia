@@ -10,6 +10,9 @@ require_once dirname(__DIR__) . '/app/autoload.php';
 use App\Core\Router;
 use App\Controllers\HomeController;
 use App\Controllers\ApiController;
+use App\Helpers\Session;
+
+Session::start();
 
 $router = new Router();
 
@@ -17,18 +20,20 @@ $router->get('/', [HomeController::class, 'index']);
 $router->get('/home', [HomeController::class, 'index']);
 $router->get('/api/v1/cursos', [ApiController::class, 'cursos']);
 $router->post('/api/v1/cursos', [ApiController::class, 'crearCurso']);
+$router->post('/api/v1/login', [ApiController::class, 'login']);
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
-$basePath = rtrim(dirname(dirname($scriptName)), '/');
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/index.php';
+$projectBase = rtrim(dirname(dirname($scriptName)), '/');
 
-if ($scriptName !== '' && str_starts_with($requestPath, $scriptName)) {
-    $requestPath = substr($requestPath, strlen($scriptName));
-} elseif ($basePath !== '' && str_starts_with($requestPath, $basePath)) {
-    $requestPath = substr($requestPath, strlen($basePath));
+if ($projectBase !== '' && str_starts_with($requestPath, $projectBase . '/')) {
+    $requestPath = substr($requestPath, strlen($projectBase));
 }
 
+$requestPath = preg_replace('#^/public(?=/|$)#', '', $requestPath) ?? $requestPath;
+$requestPath = preg_replace('#^/index\.php(?=/|$)#', '', $requestPath) ?? $requestPath;
 $requestPath = $requestPath === '' ? '/' : $requestPath;
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {

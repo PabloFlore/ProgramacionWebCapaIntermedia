@@ -1,0 +1,307 @@
+{
+  "info": {
+    "name": "SOSCUR API v1",
+    "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). El POST 201 crea un curso real: borrarlo después desde la base de datos si no se necesita.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost/soscur-portal/public/api/v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. GET cursos por categoria (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cursos?categoria_id=3",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"],
+          "query": [{ "key": "categoria_id", "value": "3" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Content-Type JSON', () => pm.response.to.have.header('Content-Type', /application\\/json/));",
+              "pm.test('Incluye data y pagination', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j.pagination).to.have.property('total_pages'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. GET cursos paginado (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cursos?categoria_id=3&page=1&limit=5",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"],
+          "query": [
+            { "key": "categoria_id", "value": "3" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "5" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Paginacion con total', () => { const p = pm.response.json().pagination; pm.expect(p.page).to.eql(1); pm.expect(p.limit).to.eql(5); pm.expect(p).to.have.property('total'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. GET cursos sin resultados (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cursos?categoria_id=999",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"],
+          "query": [{ "key": "categoria_id", "value": "999" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404', () => pm.response.to.have.status(404));",
+              "pm.test('Error en JSON', () => pm.expect(pm.response.json()).to.have.property('error'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. GET cursos sin categoria_id (400)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. PUT cursos no soportado (405)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 405', () => pm.response.to.have.status(405));",
+              "pm.test('Header Allow', () => pm.response.to.have.header('Allow', 'GET, POST'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. POST cursos sin sesion (401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Curso sin sesion\",\n  \"categoria_id\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. POST login estudiante (200)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"ismael@mail.com\",\n  \"contrasena\": \"Password1!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. POST cursos como estudiante (401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Curso de estudiante\",\n  \"categoria_id\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. POST login instructor (200)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"ana@mail.com\",\n  \"contrasena\": \"Password1!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. POST cursos como instructor (201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Curso de Prueba API\",\n  \"descripcion\": \"Prueba desde Postman\",\n  \"precio\": 0.00,\n  \"tipo_precio\": \"curso\",\n  \"categoria_id\": 3,\n  \"estatus\": \"activo\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('curso_id devuelto', () => pm.expect(pm.response.json()).to.have.property('curso_id'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. POST cursos sin titulo (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria_id\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cursos",
+          "host": ["{{baseUrl}}"],
+          "path": ["cursos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

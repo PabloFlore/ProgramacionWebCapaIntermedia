@@ -5,100 +5,232 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Helpers\Session;
+use App\Models\Categoria;
 use App\Models\Curso;
 use App\Models\Usuario;
 
 class ApiController extends Controller
 {
-    private function jsonResponse(array $data, int $status = 200): void
+    private const ROLES_INSTRUCTOR = ['instructor', 'admin'];
+    private const ESTATUS = ['activo', 'inactivo'];
+    private const TIPOS_PRECIO = ['curso', 'nivel'];
+    private const MAX_TITULO = 150;
+    private const MAX_IMAGEN = 255;
+    private const MAX_PRECIO = 99999999.99;
+    private const MAX_LIMIT = 100;
+
+    private function respond(array $data, int $status = 200): void
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        exit;
+    }
+
+    private function error(int $status, string $mensaje): void
+    {
+        $this->respond(['error' => $mensaje], $status);
+    }
+
+    private function readJsonBody(): ?array
+    {
+        $payload = json_decode((string) file_get_contents('php://input'), true);
+
+        return is_array($payload) ? $payload : null;
+    }
+
+    private function isPositiveIntString(mixed $value): bool
+    {
+        return (is_int($value) && $value > 0)
+            || (is_string($value) && ctype_digit($value) && (int) $value > 0);
     }
 
     public function cursos(): void
     {
         $categoriaId = $_GET['categoria_id'] ?? null;
 
-        if ($categoriaId === null || $categoriaId === '' || !ctype_digit((string) $categoriaId)) {
-            $this->jsonResponse(['error' => 'categoria_id es obligatorio'], 400);
+        if (!$this->isPositiveIntString($categoriaId)) {
+            $this->error(400, 'categoria_id es obligatorio y debe ser un entero positivo');
+            return;
         }
 
         $categoriaId = (int) $categoriaId;
 
-        $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) && (int) $_GET['page'] > 0 ? (int) $_GET['page'] : 1;
-        $limit = isset($_GET['limit']) && ctype_digit((string) $_GET['limit']) && (int) $_GET['limit'] > 0 ? (int) $_GET['limit'] : 10;
-        if ($limit > 100) {
-            $limit = 100;
-        }
+        $page = $this->isPositiveIntString($_GET['page'] ?? null) ? (int) $_GET['page'] : 1;
+        $limit = $this->isPositiveIntString($_GET['limit'] ?? null) ? (int) $_GET['limit'] : 10;
+        $limit = min($limit, self::MAX_LIMIT);
         $offset = ($page - 1) * $limit;
 
         $cursoModel = new Curso();
         $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $limit, $offset);
 
-        if (empty($cursos)) {
-            $this->jsonResponse(['error' => 'No se encontraron cursos para esta categoría'], 404);
+        if ($cursos === []) {
+            $this->error(404, 'No se encontraron cursos para esta categoría');
+            return;
         }
 
-        $this->jsonResponse([
+        $total = $cursoModel->contarActivosPorCategoria($categoriaId);
+
+        $this->respond([
             'data' => $cursos,
             'pagination' => [
                 'page' => $page,
                 'limit' => $limit,
                 'categoria_id' => $categoriaId,
+                'total' => $total,
+                'total_pages' => (int) ceil($total / $limit),
+            ],
+        ], 200);
+    }
+
+    public function login(): void
+    {
+        $payload = $this->readJsonBody();
+
+        if ($payload === null) {
+            $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
+            return;
+        }
+
+        $correo = isset($payload['correo']) && is_string($payload['correo']) ? trim($payload['correo']) : '';
+        $contrasena = isset($payload['contrasena']) && is_string($payload['contrasena']) ? $payload['contrasena'] : '';
+
+        $faltantes = [];
+        if ($correo === '') {
+            $faltantes[] = 'correo';
+        }
+        if ($contrasena === '') {
+            $faltantes[] = 'contrasena';
+        }
+        if ($faltantes !== []) {
+            $this->error(400, 'Faltan campos obligatorios: ' . implode(', ', $faltantes));
+            return;
+        }
+
+        $usuario = (new Usuario())->buscarPorCorreo($correo);
+
+        if ($usuario === null || !password_verify($contrasena, $usuario['contrasena_hash'])) {
+            $this->error(401, 'Credenciales inválidas');
+            return;
+        }
+
+        if ((int) $usuario['bloqueado'] === 1) {
+            $this->error(401, 'Usuario bloqueado');
+            return;
+        }
+
+        Session::login((int) $usuario['usuario_id'], $usuario['rol'], $usuario['nombre']);
+
+        $this->respond([
+            'mensaje' => 'Sesión iniciada',
+            'usuario' => [
+                'usuario_id' => (int) $usuario['usuario_id'],
+                'nombre' => $usuario['nombre'],
+                'correo' => $usuario['correo'],
+                'rol' => $usuario['rol'],
             ],
         ], 200);
     }
 
     public function crearCurso(): void
     {
-        $raw = file_get_contents('php://input');
-        $payload = json_decode($raw, true);
+        $instructorId = Session::usuarioId();
 
-        if (!is_array($payload)) {
-            $this->jsonResponse(['error' => 'JSON inválido'], 400);
+        if ($instructorId === null) {
+            $this->error(401, 'Se requiere iniciar sesión');
+            return;
         }
 
-        $required = ['titulo', 'categoria_id', 'instructor_id'];
-        foreach ($required as $field) {
-            if (!array_key_exists($field, $payload) || $payload[$field] === null || $payload[$field] === '') {
-                $this->jsonResponse(['error' => 'Faltan campos obligatorios'], 400);
-            }
+        $instructor = (new Usuario())->buscarPorId($instructorId);
+
+        if ($instructor === null
+            || (int) $instructor['bloqueado'] === 1
+            || !in_array($instructor['rol'], self::ROLES_INSTRUCTOR, true)
+        ) {
+            $this->error(401, 'No tienes permisos para registrar cursos');
+            return;
         }
 
-        $instructorId = (int) $payload['instructor_id'];
-        if ($instructorId <= 0) {
-            $this->jsonResponse(['error' => 'instructor_id inválido'], 400);
+        $payload = $this->readJsonBody();
+
+        if ($payload === null) {
+            $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
+            return;
         }
 
-        $usuarioModel = new Usuario();
-        $instructor = $usuarioModel->buscarPorId($instructorId);
-
-        if (!$instructor || ($instructor['rol'] !== 'instructor' && $instructor['rol'] !== 'admin')) {
-            $this->jsonResponse(['error' => 'No autorizado'], 401);
+        $errores = $this->validarCurso($payload);
+        if ($errores !== []) {
+            $this->respond(['error' => $errores[0], 'detalles' => $errores], 400);
+            return;
         }
 
-        if (isset($instructor['bloqueado']) && (int) $instructor['bloqueado'] === 1) {
-            $this->jsonResponse(['error' => 'No autorizado'], 401);
-        }
-
-        $cursoModel = new Curso();
-        $cursoId = $cursoModel->crear([
-            'titulo' => trim((string) $payload['titulo']),
-            'descripcion' => isset($payload['descripcion']) ? trim((string) $payload['descripcion']) : null,
-            'imagen' => isset($payload['imagen']) ? trim((string) $payload['imagen']) : null,
-            'precio' => isset($payload['precio']) ? $payload['precio'] : 0.00,
-            'tipo_precio' => isset($payload['tipo_precio']) ? $payload['tipo_precio'] : 'curso',
+        $cursoId = (new Curso())->crear([
+            'titulo' => trim($payload['titulo']),
+            'descripcion' => isset($payload['descripcion']) ? trim($payload['descripcion']) : null,
+            'imagen' => isset($payload['imagen']) ? trim($payload['imagen']) : null,
+            'precio' => isset($payload['precio']) ? (float) $payload['precio'] : 0.00,
+            'tipo_precio' => $payload['tipo_precio'] ?? 'curso',
             'instructor_id' => $instructorId,
             'categoria_id' => (int) $payload['categoria_id'],
-            'estatus' => isset($payload['estatus']) ? $payload['estatus'] : 'activo',
+            'estatus' => $payload['estatus'] ?? 'activo',
         ]);
 
-        $this->jsonResponse([
+        $this->respond([
             'mensaje' => 'Curso registrado',
             'curso_id' => $cursoId,
         ], 201);
+    }
+
+    private function validarCurso(array $payload): array
+    {
+        $errores = [];
+
+        $faltantes = [];
+        if (!isset($payload['titulo']) || !is_string($payload['titulo']) || trim($payload['titulo']) === '') {
+            $faltantes[] = 'titulo';
+        }
+        if (!isset($payload['categoria_id']) || $payload['categoria_id'] === '') {
+            $faltantes[] = 'categoria_id';
+        }
+        if ($faltantes !== []) {
+            return ['Faltan campos obligatorios: ' . implode(', ', $faltantes)];
+        }
+
+        if (mb_strlen(trim($payload['titulo'])) > self::MAX_TITULO) {
+            $errores[] = 'titulo no debe exceder ' . self::MAX_TITULO . ' caracteres';
+        }
+
+        if (isset($payload['descripcion']) && !is_string($payload['descripcion'])) {
+            $errores[] = 'descripcion debe ser texto';
+        }
+
+        if (isset($payload['imagen'])
+            && (!is_string($payload['imagen']) || mb_strlen($payload['imagen']) > self::MAX_IMAGEN)
+        ) {
+            $errores[] = 'imagen debe ser texto de máximo ' . self::MAX_IMAGEN . ' caracteres';
+        }
+
+        if (!$this->isPositiveIntString($payload['categoria_id'])) {
+            $errores[] = 'categoria_id debe ser un entero positivo';
+        } elseif (!(new Categoria())->existe((int) $payload['categoria_id'])) {
+            $errores[] = 'categoria_id no existe';
+        }
+
+        if (isset($payload['precio'])) {
+            $precio = $payload['precio'];
+            if (!is_numeric($precio) || (float) $precio < 0 || (float) $precio > self::MAX_PRECIO) {
+                $errores[] = 'precio debe ser un número entre 0 y ' . self::MAX_PRECIO;
+            }
+        }
+
+        if (isset($payload['tipo_precio']) && !in_array($payload['tipo_precio'], self::TIPOS_PRECIO, true)) {
+            $errores[] = 'tipo_precio debe ser: ' . implode(' o ', self::TIPOS_PRECIO);
+        }
+
+        if (isset($payload['estatus']) && !in_array($payload['estatus'], self::ESTATUS, true)) {
+            $errores[] = 'estatus debe ser: ' . implode(' o ', self::ESTATUS);
+        }
+
+        return $errores;
     }
 }
