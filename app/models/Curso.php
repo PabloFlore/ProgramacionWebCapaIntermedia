@@ -23,7 +23,14 @@ class Curso extends Model
         $statement->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $statement->execute();
 
-        return $statement->fetchAll();
+        return array_map(static function (array $curso): array {
+            $curso['curso_id'] = (int) $curso['curso_id'];
+            $curso['precio'] = (float) $curso['precio'];
+            $curso['instructor_id'] = (int) $curso['instructor_id'];
+            $curso['categoria_id'] = (int) $curso['categoria_id'];
+
+            return $curso;
+        }, $statement->fetchAll());
     }
 
     public function contarActivosPorCategoria(int $categoriaId): int
