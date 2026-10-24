@@ -44,6 +44,14 @@ class Router
         }
 
         http_response_code(404);
+
+        if (str_starts_with($uri, '/api/')) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['error' => 'Ruta no encontrada'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        header('Content-Type: text/plain; charset=utf-8');
         echo '404 Not Found';
     }
 
