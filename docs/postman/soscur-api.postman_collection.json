@@ -1,0 +1,777 @@
+{
+    "info": {
+        "name": "SOSCUR API v1",
+        "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). El POST 201 crea un curso real: borrarlo después desde la base de datos si no se necesita.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost/soscur-portal/public/api/v1",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. GET cursos por categoria (200)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/cursos?categoria_id=3",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ],
+                    "query": [
+                        {
+                            "key": "categoria_id",
+                            "value": "3"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                            "pm.test('Content-Type JSON', () => pm.response.to.have.header('Content-Type', /application\\/json/));",
+                            "pm.test('Incluye data y pagination', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j.pagination).to.have.property('total_pages'); });"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. GET cursos paginado (200)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/cursos?categoria_id=3&page=1&limit=5",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ],
+                    "query": [
+                        {
+                            "key": "categoria_id",
+                            "value": "3"
+                        },
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "limit",
+                            "value": "5"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                            "pm.test('Paginacion con total', () => { const p = pm.response.json().pagination; pm.expect(p.page).to.eql(1); pm.expect(p.limit).to.eql(5); pm.expect(p).to.have.property('total'); });"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. GET cursos sin resultados (404)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/cursos?categoria_id=999",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ],
+                    "query": [
+                        {
+                            "key": "categoria_id",
+                            "value": "999"
+                        }
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                            "pm.test('Error en JSON', () => pm.expect(pm.response.json()).to.have.property('error'));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. GET cursos sin categoria_id (400)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. PUT cursos no soportado (405)",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 405', () => pm.response.to.have.status(405));",
+                            "pm.test('Header Allow', () => pm.response.to.have.header('Allow', 'GET, POST'));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. POST cursos sin sesion (401)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"titulo\": \"Curso sin sesion\",\n  \"categoria_id\": 3\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "7. POST login estudiante (200)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo\": \"ismael@mail.com\",\n  \"contrasena\": \"Password1!\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/login",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "login"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "8. POST cursos como estudiante (401)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"titulo\": \"Curso de estudiante\",\n  \"categoria_id\": 3\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "9. POST login instructor (200)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo\": \"ana@mail.com\",\n  \"contrasena\": \"Password1!\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/login",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "login"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "10. POST cursos como instructor (201)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"titulo\": \"Curso de Prueba API\",\n  \"descripcion\": \"Prueba desde Postman\",\n  \"precio\": 0.00,\n  \"tipo_precio\": \"curso\",\n  \"categoria_id\": 3,\n  \"estatus\": \"activo\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                            "pm.test('curso_id devuelto', () => pm.expect(pm.response.json()).to.have.property('curso_id'));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "11. POST cursos sin titulo (400)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"categoria_id\": 3\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/cursos",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "cursos"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "12. Autenticación, perfil y administración",
+            "item": [
+                {
+                    "name": "12.1 POST registro estudiante (201)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nombre\": \"Alumno Postman\",\n    \"correo\": \"alumno.{{$guid}}@mail.com\",\n    \"contrasena\": \"Segura1!\",\n    \"contrasena_confirmacion\": \"Segura1!\",\n    \"rol\": \"estudiante\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/registro",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "registro"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                                    "pm.test('Rol estudiante y sin hash', () => { const j = pm.response.json(); pm.expect(j.usuario.rol).to.eql('estudiante'); pm.expect(j.usuario).to.not.have.property('contrasena_hash'); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.2 POST registro correo duplicado (409)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nombre\": \"Duplicado\",\n    \"correo\": \"admin@soscur.test\",\n    \"contrasena\": \"Segura1!\",\n    \"contrasena_confirmacion\": \"Segura1!\",\n    \"rol\": \"estudiante\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/registro",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "registro"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.3 POST login administrador (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"correo\": \"admin@soscur.test\",\n    \"contrasena\": \"Password1!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Rol admin', () => pm.expect(pm.response.json().usuario.rol).to.eql('admin'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.4 GET perfil autenticado (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Correo del admin', () => pm.expect(pm.response.json().usuario.correo).to.eql('admin@soscur.test'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.5 PATCH perfil (200)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"nombre\": \"Admin SOSCUR\",\n    \"genero\": \"prefiero_no_decir\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.6 POST cambiar contrasena con actual incorrecta (401)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contrasena_actual\": \"Incorrecta1!\",\n    \"contrasena_nueva\": \"NuevaSegura2!\",\n    \"contrasena_confirmacion\": \"NuevaSegura2!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil/contrasena",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil",
+                                "contrasena"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.7 GET admin usuarios (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/usuarios",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "usuarios"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Lista de usuarios', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.8 POST login estudiante (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"correo\": \"ismael@mail.com\",\n    \"contrasena\": \"Password1!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Rol estudiante', () => pm.expect(pm.response.json().usuario.rol).to.eql('estudiante'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.9 GET admin usuarios como estudiante (403)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/usuarios",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "usuarios"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.10 POST logout (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logout"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "12.11 GET perfil sin sesion (401)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
