@@ -8,6 +8,7 @@ spl_autoload_register(static function (string $class): void {
         'App\\Models\\' => __DIR__ . '/models/',
         'App\\Controllers\\' => __DIR__ . '/controllers/',
         'App\\Helpers\\' => __DIR__ . '/helpers/',
+        'App\\Services\\' => __DIR__ . '/services/',
         'App\\Core\\' => __DIR__ . '/core/',
     ];
 

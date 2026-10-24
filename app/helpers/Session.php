@@ -9,9 +9,13 @@ final class Session
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (($_SERVER['SERVER_PORT'] ?? '') === '443');
+
             session_set_cookie_params([
                 'lifetime' => 0,
                 'path' => '/',
+                'secure' => $secure,
                 'httponly' => true,
                 'samesite' => 'Lax',
             ]);
@@ -21,6 +25,7 @@ final class Session
 
     public static function login(int $usuarioId, string $rol, string $nombre): void
     {
+        self::start();
         session_regenerate_id(true);
         $_SESSION['usuario_id'] = $usuarioId;
         $_SESSION['rol'] = $rol;
@@ -42,9 +47,32 @@ final class Session
         return $_SESSION['nombre'] ?? null;
     }
 
+    public static function clearUser(): void
+    {
+        unset($_SESSION['usuario_id'], $_SESSION['rol'], $_SESSION['nombre']);
+    }
+
     public static function destroy(): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
         $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
+
         session_destroy();
     }
 }

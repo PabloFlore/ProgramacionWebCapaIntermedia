@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Controller;
+use App\Core\JsonController;
 use App\Helpers\Session;
 use App\Models\Categoria;
 use App\Models\Curso;
 use App\Models\Usuario;
 
-class ApiController extends Controller
+class ApiController extends JsonController
 {
     private const ROLES_INSTRUCTOR = ['instructor', 'admin'];
     private const ESTATUS = ['activo', 'inactivo'];
@@ -19,25 +19,6 @@ class ApiController extends Controller
     private const MAX_IMAGEN = 255;
     private const MAX_PRECIO = 99999999.99;
     private const MAX_LIMIT = 100;
-
-    private function respond(array $data, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-
-    private function error(int $status, string $mensaje): void
-    {
-        $this->respond(['error' => $mensaje], $status);
-    }
-
-    private function readJsonBody(): ?array
-    {
-        $payload = json_decode((string) file_get_contents('php://input'), true);
-
-        return is_array($payload) ? $payload : null;
-    }
 
     private function isPositiveIntString(mixed $value): bool
     {
@@ -79,55 +60,6 @@ class ApiController extends Controller
                 'categoria_id' => $categoriaId,
                 'total' => $total,
                 'total_pages' => (int) ceil($total / $limit),
-            ],
-        ], 200);
-    }
-
-    public function login(): void
-    {
-        $payload = $this->readJsonBody();
-
-        if ($payload === null) {
-            $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
-            return;
-        }
-
-        $correo = isset($payload['correo']) && is_string($payload['correo']) ? trim($payload['correo']) : '';
-        $contrasena = isset($payload['contrasena']) && is_string($payload['contrasena']) ? $payload['contrasena'] : '';
-
-        $faltantes = [];
-        if ($correo === '') {
-            $faltantes[] = 'correo';
-        }
-        if ($contrasena === '') {
-            $faltantes[] = 'contrasena';
-        }
-        if ($faltantes !== []) {
-            $this->error(400, 'Faltan campos obligatorios: ' . implode(', ', $faltantes));
-            return;
-        }
-
-        $usuario = (new Usuario())->buscarPorCorreo($correo);
-
-        if ($usuario === null || !password_verify($contrasena, $usuario['contrasena_hash'])) {
-            $this->error(401, 'Credenciales inválidas');
-            return;
-        }
-
-        if ((int) $usuario['bloqueado'] === 1) {
-            $this->error(401, 'Usuario bloqueado');
-            return;
-        }
-
-        Session::login((int) $usuario['usuario_id'], $usuario['rol'], $usuario['nombre']);
-
-        $this->respond([
-            'mensaje' => 'Sesión iniciada',
-            'usuario' => [
-                'usuario_id' => (int) $usuario['usuario_id'],
-                'nombre' => $usuario['nombre'],
-                'correo' => $usuario['correo'],
-                'rol' => $usuario['rol'],
             ],
         ], 200);
     }

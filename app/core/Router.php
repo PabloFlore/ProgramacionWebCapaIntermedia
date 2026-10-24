@@ -9,6 +9,9 @@ class Router
     private array $routes = [
         'GET' => [],
         'POST' => [],
+        'PUT' => [],
+        'PATCH' => [],
+        'DELETE' => [],
     ];
 
     public function get(string $uri, callable|array $action): void
@@ -19,6 +22,21 @@ class Router
     public function post(string $uri, callable|array $action): void
     {
         $this->routes['POST'][$this->normalize($uri)] = $action;
+    }
+
+    public function put(string $uri, callable|array $action): void
+    {
+        $this->routes['PUT'][$this->normalize($uri)] = $action;
+    }
+
+    public function patch(string $uri, callable|array $action): void
+    {
+        $this->routes['PATCH'][$this->normalize($uri)] = $action;
+    }
+
+    public function delete(string $uri, callable|array $action): void
+    {
+        $this->routes['DELETE'][$this->normalize($uri)] = $action;
     }
 
     public function dispatch(string $uri, string $method): void
