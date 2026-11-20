@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "SOSCUR API v1",
-        "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). La carpeta 15 cubre Fase 1: detalle de curso, niveles, compra simulada, confirmación de pago, avance, certificado y verificación. Aplica migrations/002 y migrations/003 antes de ejecutarla.",
+        "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). La carpeta 15 cubre Fase 1: detalle de curso, niveles, compra simulada, confirmación de pago, avance, certificado y verificación. La carpeta 16 cubre Fase 2: reportes con filtros, validación y alcance por rol. Aplica migrations/002 y migrations/003 antes de ejecutarla.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -1419,6 +1419,185 @@
                     "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
                         "pm.test('Status 409', () => pm.response.to.have.status(409));",
                         "pm.test('Progreso registrado', () => pm.expect(pm.response.json().error).to.include('progreso'));"
+                    ] } }]
+                }
+            ]
+        },
+        {
+            "name": "16. Fase 2: reportes con filtros",
+            "item": [
+                {
+                    "name": "16.1 POST logout previo (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/logout",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["logout"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ] } }]
+                },
+                {
+                    "name": "16.2 GET reportes sin sesión (401)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                    ] } }]
+                },
+                {
+                    "name": "16.3 POST login estudiante (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n  \"correo\": \"ismael@mail.com\",\n  \"contrasena\": \"Password1!\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["login"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ] } }]
+                },
+                {
+                    "name": "16.4 GET reportes como estudiante (403)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                    ] } }]
+                },
+                {
+                    "name": "16.5 POST login instructor (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n  \"correo\": \"ana@mail.com\",\n  \"contrasena\": \"Password1!\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["login"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ] } }]
+                },
+                {
+                    "name": "16.6 GET reportes instructor con filtros (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes?desde=2020-01-01&hasta=2035-12-31&estado_pago=pagado&categoria_id=3&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"],
+                            "query": [
+                                { "key": "desde", "value": "2020-01-01" },
+                                { "key": "hasta", "value": "2035-12-31" },
+                                { "key": "estado_pago", "value": "pagado" },
+                                { "key": "categoria_id", "value": "3" },
+                                { "key": "limit", "value": "10" }
+                            ]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Estructura de reporte', () => { const d = pm.response.json().data; pm.expect(d).to.have.property('resumen'); pm.expect(d.por_curso).to.be.an('array'); pm.expect(d.detalle).to.be.an('array'); pm.expect(d).to.have.property('paginacion'); });",
+                        "pm.test('Filtros normalizados', () => { const f = pm.response.json().data.filtros; pm.expect(f.estado_pago).to.eql('pagado'); pm.expect(f.categoria_id).to.eql(3); });"
+                    ] } }]
+                },
+                {
+                    "name": "16.7 GET reportes filtro inválido (400)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes?estado_pago=no-valido",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"],
+                            "query": [{ "key": "estado_pago", "value": "no-valido" }]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                        "pm.test('Detalla el error', () => pm.expect(pm.response.json().detalles).to.be.an('array').that.is.not.empty);"
+                    ] } }]
+                },
+                {
+                    "name": "16.8 POST login admin (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n  \"correo\": \"admin@soscur.test\",\n  \"contrasena\": \"Password1!\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["login"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ] } }]
+                },
+                {
+                    "name": "16.9 GET reporte general admin (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Incluye usuarios por rol', () => pm.expect(pm.response.json().data.por_rol).to.be.an('array'));"
+                    ] } }]
+                },
+                {
+                    "name": "16.10 GET reporte admin filtrado (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes?desde=2020-01-01&hasta=2035-12-31&estado_pago=pagado&rol=estudiante&bloqueado=0&limit=25",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"],
+                            "query": [
+                                { "key": "desde", "value": "2020-01-01" },
+                                { "key": "hasta", "value": "2035-12-31" },
+                                { "key": "estado_pago", "value": "pagado" },
+                                { "key": "rol", "value": "estudiante" },
+                                { "key": "bloqueado", "value": "0" },
+                                { "key": "limit", "value": "25" }
+                            ]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Formato de filtros', () => { const f = pm.response.json().data.filtros; pm.expect(f.rol).to.eql('estudiante'); pm.expect(f.bloqueado).to.eql(0); pm.expect(f.limite).to.eql(25); });"
                     ] } }]
                 }
             ]

@@ -36,6 +36,7 @@ $navUsuario = Auth::user();
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('mis-cursos'), ENT_QUOTES, 'UTF-8') ?>">Mis cursos</a></li>
           <?php if (in_array($navUsuario['rol'], ['instructor', 'admin'], true)): ?>
             <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('admin/cursos'), ENT_QUOTES, 'UTF-8') ?>">Gestionar cursos</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('reportes'), ENT_QUOTES, 'UTF-8') ?>">Reportes</a></li>
           <?php endif; ?>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('verificar-diploma'), ENT_QUOTES, 'UTF-8') ?>">Verificar certificado</a></li>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('perfil'), ENT_QUOTES, 'UTF-8') ?>">Mi perfil</a></li>

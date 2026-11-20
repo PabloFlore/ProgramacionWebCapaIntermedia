@@ -10,11 +10,11 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 
 ## Rúbricas trabajadas
 
-| Rúbrica | Puntaje | Situación inicial |
+| Rúbrica | Puntaje | Situación actual |
 | --- | --- | --- |
-| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance y baja lógica accionables; faltan reportes y moderación. |
-| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpeta 15 de Fase 1). |
-| Reportes con filtros | 10 | Muy parcial: solo listado de usuarios con filtros. |
+| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance, baja lógica y reportes; falta moderación. |
+| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15 y 16). |
+| Reportes con filtros | 10 | Implementados: reporte general admin y de ventas por instructor, con filtros y formatos. |
 | Inyección de dependencias | 10 | Ampliada: contenedor, servicios inyectados y modelos con PDO; queda limpiar `Controller::model()` en Fase 4. |
 | Módulo de administrador | 8 | Parcial: bloqueo/reactivación y gestión de cursos; categorías y moderación pendientes. |
 | Interacción y búsqueda | 8 | Parcial: filtro por categoría, búsqueda local y detalle de curso; faltan comentarios, promedio y mensajería. |
@@ -38,11 +38,21 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 | --- | --- | --- |
 | 0 | Contenedor DI, interfaces, PDO inyectado, `Request`, CSRF API, confirmaciones y este documento | Completada |
 | 1 | Cursos/niveles completos, inscripción, pagos simulados y diploma automático | Completada |
-| 2 | Reportes con filtros y formatos | Pendiente |
+| 2 | Reportes con filtros y formatos | Completada |
 | 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Pendiente |
 | 4 | Canje de token, tabla admin y logout vía `fetch` | Pendiente |
 
 ## Registro de avances
+
+### Fase 2 — Reportes con filtros y formatos
+
+- Nueva ruta web `GET /reportes` para instructor/admin y endpoint `GET /api/v1/reportes` con el mismo alcance por rol; ambos registrados en `public/index.php` y `app/config/access.php`.
+- Nuevos `Reporte` y `ReporteService`: consultas preparadas sobre `inscripciones`, `cursos`, `categorias`, `usuarios` y `metodos_pago`, sin migraciones nuevas ni dependencias externas.
+- Filtros soportados: `desde`, `hasta`, `curso_id`, `categoria_id`, `estado_pago`, `rol`, `bloqueado`, `pagina` y `limite` (alias `limit` en la API), con validación y `400` cuando no son válidos.
+- El admin obtiene el reporte general de todo el portal; el instructor ve únicamente sus cursos, tanto en resúmenes como en el desglose.
+- Vista `app/views/reporte/index.php` con KPIs, usuarios por rol, ventas por curso y desglose por alumno. Fechas `dd/mm/yyyy` e importes MXN con `$` y dos decimales; `public/js/reportes.js` valida el rango de fechas y ofrece limpiar filtros.
+- Colección Postman ampliada con la carpeta 16 (10 peticiones): sin sesión, rol insuficiente, instructor filtrado, filtro inválido, administrador general y filtrado.
+- Verificación: `php -l`, `node --check`, JSON de Postman válido, `git diff --check` sin errores y smoke HTTP sobre BD temporal con 21/21 verificaciones: `LOGOUT_INICIAL=401`, `REPORTE_SIN_SESION=401`, `LOGIN_ESTUDIANTE=200`, `REPORTE_ESTUDIANTE_403=403`, `LOGIN_INSTRUCTOR=200`, `REPORTE_INSTRUCTOR=200`, `INSTRUCTOR_ESTRUCTURA=True`, `INSTRUCTOR_FILTROS=pagado|3`, `INSTRUCTOR_ALCANCE_CURSOS=True`, `REPORTE_FILTRO_INVALIDO=400`, `LOGIN_ADMIN=200`, `REPORTE_GENERAL_ADMIN=200`, `ADMIN_POR_ROL=True`, `REPORTE_ADMIN_FILTRADO=200`, `ADMIN_FILTROS_NORMALIZADOS=estudiante|0|25`, `REPORTE_WEB=200`, formatos de fecha y moneda presentes y log PHP limpio.
 
 ### Fase 1 — Cursos navegables, pagos y certificados
 

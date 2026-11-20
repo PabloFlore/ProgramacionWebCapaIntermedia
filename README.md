@@ -87,6 +87,7 @@ El avance por fases y las decisiones técnicas se documentan en [`docs/ESTADO_AV
 | GET | `/admin/usuarios` | Listado de usuarios (solo admin) |
 | POST | `/admin/usuarios/{id}/bloquear` | Bloquear usuario (solo admin) |
 | POST | `/admin/usuarios/{id}/reactivar` | Reactivar usuario (solo admin) |
+| GET | `/reportes` | Reportes con filtros (instructor/admin) |
 
 Los formularios web usan token CSRF y las contraseñas se almacenan con `password_hash()`. Las peticiones API mutantes que llegan desde el navegador también exigen `X-CSRF-Token`; las peticiones de Postman/curl sin `Origin` o `Sec-Fetch-Site` siguen funcionando igual.
 
@@ -109,6 +110,7 @@ Base: `/api/v1`
 | POST | `/perfil/contrasena` | Sesión | Cambiar contraseña |
 | POST | `/perfil/foto` | Sesión | Subir avatar (`multipart/form-data`) |
 | GET | `/admin/usuarios` | Admin | Listar usuarios con filtros `rol` y `bloqueado` |
+| GET | `/reportes?desde=2026-01-01&hasta=2026-12-31&estado_pago=pagado` | Instructor/admin | Reportes con resumen, por rol, por curso y desglose; filtros `desde`, `hasta`, `curso_id`, `categoria_id`, `estado_pago`, `rol`, `bloqueado`, `pagina` y `limit` |
 | POST | `/admin/usuarios/{id}/bloquear` | Admin | Bloquear usuario |
 | POST | `/admin/usuarios/{id}/reactivar` | Admin | Reactivar usuario |
 
@@ -123,6 +125,7 @@ El cliente consume la API propia con `async/await` y `fetch`, sin recargar la p�
 | Registro | `public/js/auth.js` | `POST /api/v1/registro` con `multipart/form-data` y foto opcional |
 | Perfil | `public/js/profile.js` | `PATCH /api/v1/perfil`, `POST /api/v1/perfil/foto` y cambio de contraseña |
 | Administración | `public/js/admin-usuarios.js` | Bloquear y reactivar usuarios |
+| Reportes | `public/js/reportes.js` | Validar rango de fechas y limpiar filtros |
 | Dashboard instructor/admin | `public/js/instructor.js` | Crear cursos con `POST /api/v1/cursos` |
 
 La capa común está en `public/js/api.js`:
@@ -231,11 +234,11 @@ seed.sql                 Datos de demostración
 
 ## Base de datos existente
 
-Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_align_schema_ui.sql` y después `migrations/002_verificacion_correo.sql` antes de usar esta versión. Para instalaciones nuevas, usar `schema.sql` y `seed.sql` (ya incluyen `token_verificacion_expira`).
+Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_align_schema_ui.sql`, `migrations/002_verificacion_correo.sql` y `migrations/003_cursos_pagos_diplomas.sql` antes de usar esta versión. Para instalaciones nuevas, usar `schema.sql` y `seed.sql` y aplicar las migraciones 002 y 003 (no la 001, porque duplica `genero`).
 
 ## Pruebas
 
-La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS y verificación de correo. Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
+La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15) y reportes (carpeta 16). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
 
 Con `SENDGRID_SANDBOX=true`, la petición de registro devuelve `token_verificacion`; ese valor se usa en la carpeta «14. Verificación de correo» para comprobar `200` y, repetida, `400` por token ya usado. El reenvío sin sesión espera `401`.
 
