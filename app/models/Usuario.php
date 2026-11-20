@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Contracts\UsuarioRepositoryInterface;
 use PDO;
 
-class Usuario extends Model
+class Usuario extends Model implements UsuarioRepositoryInterface
 {
     private const CAMPOS_PUBLICOS = 'usuario_id, nombre, correo, rol, genero, fecha_nacimiento,
         foto_perfil, correo_verificado, intentos_fallidos, bloqueado, motivo_bloqueo,

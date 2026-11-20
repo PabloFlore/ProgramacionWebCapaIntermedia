@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\JsonController;
+use App\Core\Request;
 use App\Helpers\Session;
 use App\Helpers\Upload;
 use App\Services\AuthService;
@@ -15,10 +16,10 @@ class ApiAuthController extends JsonController
     private AuthService $authService;
     private UserService $userService;
 
-    public function __construct()
+    public function __construct(AuthService $authService, UserService $userService)
     {
-        $this->authService = new AuthService();
-        $this->userService = new UserService();
+        $this->authService = $authService;
+        $this->userService = $userService;
     }
 
     public function registro(): void
@@ -93,9 +94,7 @@ class ApiAuthController extends JsonController
         }
 
         $correo = isset($payload['correo']) && is_string($payload['correo']) ? $payload['correo'] : '';
-        $contrasena = isset($payload['contrasena']) && is_string($payload['contrasena'])
-            ? $payload['contrasena']
-            : '';
+        $contrasena = Request::raw('contrasena', $payload);
 
         $resultado = $this->authService->login($correo, $contrasena);
 
@@ -221,9 +220,9 @@ class ApiAuthController extends JsonController
 
         $resultado = $this->authService->cambiarContrasena(
             (int) $usuario['usuario_id'],
-            (string) ($payload['contrasena_actual'] ?? ''),
-            (string) ($payload['contrasena_nueva'] ?? ''),
-            (string) ($payload['contrasena_confirmacion'] ?? '')
+            Request::raw('contrasena_actual', $payload),
+            Request::raw('contrasena_nueva', $payload),
+            Request::raw('contrasena_confirmacion', $payload)
         );
 
         if (!$resultado['ok']) {

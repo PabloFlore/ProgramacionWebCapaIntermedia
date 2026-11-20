@@ -13,12 +13,18 @@ use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\UserController;
+use App\Core\Container;
 use App\Core\Router;
+use App\Helpers\Auth;
 use App\Helpers\Session;
+use App\Models\Contracts\UsuarioRepositoryInterface;
 
 Session::start();
 
-$router = new Router();
+$container = new Container();
+(require dirname(__DIR__) . '/app/config/bindings.php')($container);
+Auth::setUserRepository($container->get(UsuarioRepositoryInterface::class));
+$router = new Router(null, $container);
 
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/home', [HomeController::class, 'index']);

@@ -6,6 +6,7 @@ namespace App\Core;
 
 use App\Middleware\AccessMiddleware;
 use App\Middleware\CorsMiddleware;
+use App\Middleware\CsrfApiMiddleware;
 use App\Middleware\MiddlewareInterface;
 
 class Router
@@ -19,10 +20,12 @@ class Router
     ];
 
     private array $accessPolicy;
+    private ?Container $container;
 
-    public function __construct(?array $accessPolicy = null)
+    public function __construct(?array $accessPolicy = null, ?Container $container = null)
     {
         $this->accessPolicy = $accessPolicy ?? require __DIR__ . '/../config/access.php';
+        $this->container = $container;
     }
 
     public function get(string $uri, callable|array $action, array $middleware = []): void
@@ -79,7 +82,7 @@ class Router
 
         if (str_starts_with($uri, '/api/')) {
             $this->runMiddleware(
-                [new CorsMiddleware($method)],
+                [new CorsMiddleware($method), new CsrfApiMiddleware()],
                 $uri,
                 function () use ($uri, $method): void {
                     $this->dispatchRoute($uri, $method);
@@ -187,7 +190,9 @@ class Router
         if (is_array($action)) {
             [$controller, $method] = $action;
             if (is_string($controller)) {
-                $controller = new $controller();
+                $controller = $this->container !== null
+                    ? $this->container->get($controller)
+                    : new $controller();
             }
             call_user_func_array([$controller, $method], $params);
             return;

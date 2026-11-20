@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\JsonController;
+use App\Core\Request;
 use App\Services\UserService;
 
 class ApiAdminController extends JsonController
 {
     private UserService $userService;
 
-    public function __construct()
+    public function __construct(UserService $userService)
     {
-        $this->userService = new UserService();
+        $this->userService = $userService;
     }
 
     public function usuarios(): void
@@ -22,11 +23,13 @@ class ApiAdminController extends JsonController
             return;
         }
 
-        $rol = isset($_GET['rol']) && is_string($_GET['rol']) ? $_GET['rol'] : null;
+        $rol = Request::string('rol', $_GET);
+        $rol = $rol === '' ? null : $rol;
         $bloqueado = null;
+        $bloqueadoTexto = Request::string('bloqueado', $_GET);
 
-        if (isset($_GET['bloqueado']) && $_GET['bloqueado'] !== '') {
-            $valor = filter_var($_GET['bloqueado'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($bloqueadoTexto !== '') {
+            $valor = filter_var($bloqueadoTexto, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
 
             if ($valor === null) {
                 $this->error(400, 'bloqueado debe ser 1, 0, true o false');

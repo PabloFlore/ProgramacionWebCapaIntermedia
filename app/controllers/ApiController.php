@@ -20,6 +20,13 @@ class ApiController extends JsonController
     private const MAX_PRECIO = 99999999.99;
     private const MAX_LIMIT = 100;
 
+    public function __construct(
+        private readonly Categoria $categorias,
+        private readonly Curso $cursos,
+        private readonly Usuario $usuarios
+    ) {
+    }
+
     private function isPositiveIntString(mixed $value): bool
     {
         return (is_int($value) && $value > 0)
@@ -28,7 +35,7 @@ class ApiController extends JsonController
 
     public function categorias(): void
     {
-        $this->respond(['data' => (new Categoria())->listar()], 200);
+        $this->respond(['data' => $this->categorias->listar()], 200);
     }
 
     public function cursos(): void
@@ -47,7 +54,7 @@ class ApiController extends JsonController
         $limit = min($limit, self::MAX_LIMIT);
         $offset = ($page - 1) * $limit;
 
-        $cursoModel = new Curso();
+        $cursoModel = $this->cursos;
         $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $limit, $offset);
 
         if ($cursos === []) {
@@ -78,7 +85,7 @@ class ApiController extends JsonController
             return;
         }
 
-        $instructor = (new Usuario())->buscarPorId($instructorId);
+        $instructor = $this->usuarios->buscarPorId($instructorId);
 
         if ($instructor === null || (int) $instructor['bloqueado'] === 1) {
             $this->error(401, 'No tienes permisos para registrar cursos');
@@ -103,7 +110,7 @@ class ApiController extends JsonController
             return;
         }
 
-        $cursoId = (new Curso())->crear([
+        $cursoId = $this->cursos->crear([
             'titulo' => trim($payload['titulo']),
             'descripcion' => isset($payload['descripcion']) ? trim($payload['descripcion']) : null,
             'imagen' => isset($payload['imagen']) ? trim($payload['imagen']) : null,
@@ -151,7 +158,7 @@ class ApiController extends JsonController
 
         if (!$this->isPositiveIntString($payload['categoria_id'])) {
             $errores[] = 'categoria_id debe ser un entero positivo';
-        } elseif (!(new Categoria())->existe((int) $payload['categoria_id'])) {
+        } elseif (!$this->categorias->existe((int) $payload['categoria_id'])) {
             $errores[] = 'categoria_id no existe';
         }
 

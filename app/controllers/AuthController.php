@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Request;
 use App\Helpers\Auth;
 use App\Helpers\Csrf;
 use App\Helpers\Session;
@@ -17,10 +18,10 @@ class AuthController extends Controller
     private AuthService $authService;
     private UserService $userService;
 
-    public function __construct()
+    public function __construct(AuthService $authService, UserService $userService)
     {
-        $this->authService = new AuthService();
-        $this->userService = new UserService();
+        $this->authService = $authService;
+        $this->userService = $userService;
     }
 
     public function showLogin(): void
@@ -35,7 +36,7 @@ class AuthController extends Controller
 
     public function login(): void
     {
-        $correo = trim((string) ($_POST['correo'] ?? ''));
+        $correo = Request::string('correo', $_POST);
 
         if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
             $this->view('auth/login', [
@@ -46,7 +47,7 @@ class AuthController extends Controller
             return;
         }
 
-        $resultado = $this->authService->login($correo, (string) ($_POST['contrasena'] ?? ''));
+        $resultado = $this->authService->login($correo, Request::raw('contrasena', $_POST));
 
         if (!$resultado['ok']) {
             $this->view('auth/login', [
@@ -65,7 +66,7 @@ class AuthController extends Controller
 
     public function verificarCorreo(): void
     {
-        $token = (string) ($_GET['token'] ?? '');
+        $token = Request::string('token', $_GET);
         $resultado = $this->authService->verificarCorreo($token);
 
         $this->flash($resultado['ok'] ? 'success' : 'error', $resultado['message']);
@@ -85,11 +86,11 @@ class AuthController extends Controller
     public function register(): void
     {
         $old = [
-            'nombre' => trim((string) ($_POST['nombre'] ?? '')),
-            'correo' => trim((string) ($_POST['correo'] ?? '')),
-            'rol' => (string) ($_POST['rol'] ?? 'estudiante'),
-            'genero' => (string) ($_POST['genero'] ?? ''),
-            'fecha_nacimiento' => (string) ($_POST['fecha_nacimiento'] ?? ''),
+            'nombre' => Request::string('nombre', $_POST),
+            'correo' => Request::string('correo', $_POST),
+            'rol' => Request::string('rol', $_POST, 'estudiante'),
+            'genero' => Request::string('genero', $_POST),
+            'fecha_nacimiento' => Request::string('fecha_nacimiento', $_POST),
         ];
 
         if (!Csrf::validate($_POST['csrf_token'] ?? null)) {

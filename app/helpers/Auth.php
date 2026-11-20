@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace App\Helpers;
 
+use App\Models\Contracts\UsuarioRepositoryInterface;
 use App\Models\Usuario;
 
 final class Auth
 {
+    private static ?UsuarioRepositoryInterface $userRepository = null;
+
+    public static function setUserRepository(UsuarioRepositoryInterface $repository): void
+    {
+        self::$userRepository = $repository;
+    }
+
     public static function user(): ?array
     {
         $usuarioId = Session::usuarioId();
@@ -16,7 +24,8 @@ final class Auth
             return null;
         }
 
-        $usuario = (new Usuario())->buscarPorId($usuarioId);
+        $repositorio = self::$userRepository ?? new Usuario();
+        $usuario = $repositorio->buscarPorId($usuarioId);
 
         if ($usuario === null || (int) $usuario['bloqueado'] === 1) {
             Session::clearUser();

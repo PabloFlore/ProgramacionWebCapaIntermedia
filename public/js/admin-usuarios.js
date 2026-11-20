@@ -68,6 +68,27 @@
         return;
       }
 
+      const mensaje = accion === 'bloquear'
+        ? '¿Bloquear al usuario con el motivo: ' + motivo + '?'
+        : '¿Reactivar al usuario seleccionado?';
+
+      let confirmado = true;
+
+      if (typeof window.SoscurConfirm === 'function') {
+        confirmado = await window.SoscurConfirm({
+          titulo: accion === 'bloquear' ? 'Bloquear usuario' : 'Reactivar usuario',
+          mensaje: mensaje,
+          aceptar: accion === 'bloquear' ? 'Bloquear' : 'Reactivar',
+          claseBoton: accion === 'bloquear' ? 'btn-danger' : 'btn-success'
+        });
+      } else {
+        confirmado = window.confirm(mensaje);
+      }
+
+      if (!confirmado) {
+        return;
+      }
+
       api.setLoading(boton, true, 'Guardando...');
 
       try {

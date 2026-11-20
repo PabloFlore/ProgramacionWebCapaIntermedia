@@ -7,6 +7,8 @@ Proyecto Integrador de Aprendizaje (PIA) para Programación Web Capa Intermedia 
 - **Juan Pablo Flores Garibay #1905170** — Programador de Capa Intermedia. Controladores y modelos PHP (POO + MVC), API REST, autenticación, conexión y gestión de MySQL.
 - **Ismael Cruz Vazquez** — Programador de Cliente e Integraciones. Vistas HTML5/CSS3/JS, consumo de API con `fetch`, integraciones y validaciones de interfaz.
 
+El avance por fases y las decisiones técnicas se documentan en [`docs/ESTADO_AVANCE.md`](docs/ESTADO_AVANCE.md).
+
 ## Tecnologías
 
 - PHP 8.2 puro, sin frameworks, con arquitectura MVC.
@@ -86,7 +88,7 @@ Proyecto Integrador de Aprendizaje (PIA) para Programación Web Capa Intermedia 
 | POST | `/admin/usuarios/{id}/bloquear` | Bloquear usuario (solo admin) |
 | POST | `/admin/usuarios/{id}/reactivar` | Reactivar usuario (solo admin) |
 
-Los formularios web usan token CSRF y las contraseñas se almacenan con `password_hash()`.
+Los formularios web usan token CSRF y las contraseñas se almacenan con `password_hash()`. Las peticiones API mutantes que llegan desde el navegador también exigen `X-CSRF-Token`; las peticiones de Postman/curl sin `Origin` o `Sec-Fetch-Site` siguen funcionando igual.
 
 ## API REST
 
@@ -202,11 +204,11 @@ Contraseña para todos: `Password1!`
 app/
 ├── config/              Configuración, conexión PDO, política de acceso y CORS
 ├── controllers/         Controladores web y API
-├── core/                Router, Controller y JsonController
+├── core/                Router, Container, Request, Controller y JsonController
 ├── helpers/             Auth, Csrf, Session, Upload, Url y SendGrid
-├── middleware/          Middleware de accesos y CORS
-├── models/              Acceso a datos
-├── services/            Lógica de autenticación y usuarios
+├── middleware/          Middleware de accesos, CORS y CSRF de API
+├── models/              Acceso a datos y contratos de repositorio
+├── services/            Lógica de autenticación, usuarios, correo y contratos
 └── views/               Vistas PHP en ejecución
 public/
 ├── css/
@@ -214,6 +216,7 @@ public/
 ├── uploads/avatars/     Avatares subidos
 └── index.php            Front controller y rutas
 docs/
+├── ESTADO_AVANCE.md     Seguimiento de fases y decisiones técnicas
 ├── postman/             Colección de pruebas de la API
 ├── prototipos/          Maquetas HTML estáticas (no servidas por el router)
 └── presentacion/        Material de la asignatura

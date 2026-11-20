@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Config\Database;
-use App\Helpers\SendGridHelper;
 use App\Helpers\Url;
-use App\Models\Usuario;
+use App\Models\Contracts\UsuarioRepositoryInterface;
+use App\Services\Contracts\MailerInterface;
 use DateTimeImmutable;
+use PDO;
 use PDOException;
 use Throwable;
 
@@ -17,6 +18,16 @@ final class AuthService
     public const MAX_INTENTOS = 3;
     private const ROLES_REGISTRO = ['estudiante', 'instructor'];
     private const GENEROS = ['femenino', 'masculino', 'prefiero_no_decir'];
+
+    private readonly PDO $db;
+
+    public function __construct(
+        private readonly UsuarioRepositoryInterface $usuarios,
+        private readonly MailerInterface $mailer,
+        ?PDO $db = null
+    ) {
+        $this->db = $db ?? Database::getConnection();
+    }
 
     public function registro(array $datos): array
     {
@@ -99,7 +110,7 @@ final class AuthService
             return ['ok' => false, 'status' => 400, 'message' => $errores[0], 'detalles' => $errores];
         }
 
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
 
         if ($modelo->existeCorreo($correo)) {
             return ['ok' => false, 'status' => 409, 'message' => 'El correo ya está registrado'];
@@ -139,7 +150,7 @@ final class AuthService
         }
 
         $enlace = Url::absolute('verificar-correo?token=' . urlencode($token));
-        $correoEnviado = SendGridHelper::enviarVerificacion($correo, $nombre, $enlace);
+        $correoEnviado = $this->mailer->enviarVerificacion($correo, $nombre, $enlace);
         $config = $this->configuracion();
 
         $respuesta = [
@@ -171,8 +182,8 @@ final class AuthService
             ];
         }
 
-        $db = Database::getConnection();
-        $modelo = new Usuario();
+        $db = $this->db;
+        $modelo = $this->usuarios;
 
         try {
             $db->beginTransaction();
@@ -248,7 +259,7 @@ final class AuthService
         string $contrasenaNueva,
         string $confirmacion
     ): array {
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarPorIdConHash($usuarioId);
 
         if ($usuario === null) {
@@ -306,7 +317,7 @@ final class AuthService
         }
 
         $tokenHash = hash('sha256', $token);
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarPorTokenVerificacion($tokenHash);
 
         if ($usuario === null || !hash_equals((string) $usuario['token_verificacion'], $tokenHash)) {
@@ -338,7 +349,7 @@ final class AuthService
 
     public function reenviarVerificacion(int $usuarioId): array
     {
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarVerificacionPorId($usuarioId);
 
         if ($usuario === null) {
@@ -369,7 +380,7 @@ final class AuthService
         $modelo->actualizarTokenVerificacion($usuarioId, $tokenHash, $nuevaExpiracion);
 
         $enlace = Url::absolute('verificar-correo?token=' . urlencode($token));
-        $enviado = SendGridHelper::enviarVerificacion(
+        $enviado = $this->mailer->enviarVerificacion(
             (string) $usuario['correo'],
             (string) $usuario['nombre'],
             $enlace

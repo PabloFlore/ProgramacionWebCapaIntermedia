@@ -5,25 +5,29 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Helpers\Upload;
-use App\Models\Usuario;
+use App\Models\Contracts\UsuarioRepositoryInterface;
 
 final class UserService
 {
     private const GENEROS = ['femenino', 'masculino', 'prefiero_no_decir'];
 
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
     public function perfil(int $usuarioId): ?array
     {
-        return (new Usuario())->buscarPorId($usuarioId);
+        return ($this->usuarios)->buscarPorId($usuarioId);
     }
 
     public function listar(?string $rol = null, ?bool $bloqueado = null): array
     {
-        return (new Usuario())->listar($rol, $bloqueado);
+        return ($this->usuarios)->listar($rol, $bloqueado);
     }
 
     public function actualizarPerfil(int $usuarioId, array $datos, ?array $archivo = null): array
     {
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarPorId($usuarioId);
 
         if ($usuario === null) {
@@ -142,7 +146,7 @@ final class UserService
             return ['ok' => false, 'status' => 400, 'message' => 'No puedes bloquear tu propia cuenta'];
         }
 
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarPorId($usuarioId);
 
         if ($usuario === null) {
@@ -173,7 +177,7 @@ final class UserService
 
     public function reactivar(int $usuarioId): array
     {
-        $modelo = new Usuario();
+        $modelo = $this->usuarios;
         $usuario = $modelo->buscarPorId($usuarioId);
 
         if ($usuario === null) {

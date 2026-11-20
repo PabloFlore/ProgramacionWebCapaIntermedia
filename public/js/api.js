@@ -3,6 +3,7 @@
 
   const apiMeta = document.querySelector('meta[name="api-base"]');
   const appMeta = document.querySelector('meta[name="app-base"]');
+  const csrfMeta = document.querySelector('meta[name="csrf-token"]');
   const apiBase = (apiMeta && apiMeta.content ? apiMeta.content : '/api/v1').replace(/\/+$/, '');
   const appBase = (appMeta && appMeta.content ? appMeta.content : '').replace(/\/+$/, '');
 
@@ -33,6 +34,10 @@
       headers: headers,
       signal: opts.signal || null
     };
+
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfMeta && csrfMeta.content) {
+      headers['X-CSRF-Token'] = csrfMeta.content;
+    }
 
     if (opts.body !== undefined && opts.body !== null) {
       if (opts.body instanceof FormData) {
