@@ -223,10 +223,17 @@
     pie.appendChild(precio);
     pie.appendChild(tipo);
 
+    const enlace = document.createElement('a');
+    enlace.className = 'btn btn-outline-primary btn-sm mt-3';
+    enlace.href = api.asset('curso/' + Number(curso.curso_id));
+    enlace.textContent = 'Ver curso';
+    enlace.setAttribute('aria-label', 'Ver detalles de ' + String(curso.titulo || 'curso'));
+
     cuerpo.appendChild(categoriaBadge);
     cuerpo.appendChild(titulo);
     cuerpo.appendChild(descripcion);
     cuerpo.appendChild(pie);
+    cuerpo.appendChild(enlace);
 
     tarjeta.appendChild(portada);
     tarjeta.appendChild(cuerpo);

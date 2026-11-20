@@ -67,4 +67,122 @@ class Curso extends Model
 
         return (int) $this->db->lastInsertId();
     }
+
+    public function buscarPorId(int $id): ?array
+    {
+        $curso = $this->fetchOne(
+            'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
+                    c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
+                    cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre
+             FROM cursos c
+             INNER JOIN categorias cat ON cat.categoria_id = c.categoria_id
+             INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
+             WHERE c.curso_id = :id
+             LIMIT 1',
+            ['id' => $id]
+        );
+
+        if ($curso === null) {
+            return null;
+        }
+
+        $curso['curso_id'] = (int) $curso['curso_id'];
+        $curso['precio'] = (float) $curso['precio'];
+        $curso['instructor_id'] = (int) $curso['instructor_id'];
+        $curso['categoria_id'] = (int) $curso['categoria_id'];
+
+        return $curso;
+    }
+
+    public function listar(?string $estatus = null, ?int $instructorId = null, int $limit = 20, int $offset = 0): array
+    {
+        $sql = 'SELECT c.curso_id, c.titulo, c.precio, c.estatus, c.fecha_creacion,
+                       cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre
+                FROM cursos c
+                INNER JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
+                WHERE 1 = 1';
+        $params = [];
+
+        if ($estatus !== null) {
+            $sql .= ' AND c.estatus = :estatus';
+            $params['estatus'] = $estatus;
+        }
+
+        if ($instructorId !== null) {
+            $sql .= ' AND c.instructor_id = :instructor_id';
+            $params['instructor_id'] = $instructorId;
+        }
+
+        $sql .= ' ORDER BY c.curso_id DESC LIMIT :limit OFFSET :offset';
+
+        $statement = $this->db->prepare($sql);
+
+        foreach ($params as $clave => $valor) {
+            $statement->bindValue(':' . $clave, $valor);
+        }
+
+        $statement->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $statement->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $statement->execute();
+
+        $rows = $statement->fetchAll();
+
+        return array_map(static function (array $curso): array {
+            $curso['curso_id'] = (int) $curso['curso_id'];
+            $curso['precio'] = (float) $curso['precio'];
+
+            return $curso;
+        }, $rows);
+    }
+
+    public function contar(?string $estatus = null, ?int $instructorId = null): int
+    {
+        $sql = 'SELECT COUNT(*) AS total FROM cursos c WHERE 1 = 1';
+        $params = [];
+
+        if ($estatus !== null) {
+            $sql .= ' AND c.estatus = :estatus';
+            $params['estatus'] = $estatus;
+        }
+
+        if ($instructorId !== null) {
+            $sql .= ' AND c.instructor_id = :instructor_id';
+            $params['instructor_id'] = $instructorId;
+        }
+
+        $statement = $this->db->prepare($sql);
+        $statement->execute($params);
+        $fila = $statement->fetch();
+
+        return $fila ? (int) $fila['total'] : 0;
+    }
+
+    public function actualizar(int $id, array $datos): bool
+    {
+        return $this->db->prepare(
+            'UPDATE cursos
+             SET titulo = :titulo, descripcion = :descripcion, imagen = :imagen, precio = :precio,
+                 tipo_precio = :tipo_precio, instructor_id = :instructor_id, categoria_id = :categoria_id
+             WHERE curso_id = :id'
+        )->execute([
+            'id' => $id,
+            'titulo' => (string) $datos['titulo'],
+            'descripcion' => $datos['descripcion'],
+            'imagen' => $datos['imagen'],
+            'precio' => (float) $datos['precio'],
+            'tipo_precio' => (string) $datos['tipo_precio'],
+            'instructor_id' => (int) $datos['instructor_id'],
+            'categoria_id' => (int) $datos['categoria_id'],
+        ]);
+    }
+
+    public function cambiarEstatus(int $id, string $estatus): bool
+    {
+        return $this->db->prepare('UPDATE cursos SET estatus = :estatus WHERE curso_id = :id')
+            ->execute([
+                'id' => $id,
+                'estatus' => $estatus,
+            ]);
+    }
 }

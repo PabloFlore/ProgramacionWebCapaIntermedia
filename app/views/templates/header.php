@@ -33,6 +33,11 @@ $navUsuario = Auth::user();
       <ul class="navbar-nav me-auto">
         <?php if ($navUsuario !== null): ?>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('dashboard'), ENT_QUOTES, 'UTF-8') ?>">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('mis-cursos'), ENT_QUOTES, 'UTF-8') ?>">Mis cursos</a></li>
+          <?php if (in_array($navUsuario['rol'], ['instructor', 'admin'], true)): ?>
+            <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('admin/cursos'), ENT_QUOTES, 'UTF-8') ?>">Gestionar cursos</a></li>
+          <?php endif; ?>
+          <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('verificar-diploma'), ENT_QUOTES, 'UTF-8') ?>">Verificar certificado</a></li>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('perfil'), ENT_QUOTES, 'UTF-8') ?>">Mi perfil</a></li>
           <?php if ($navUsuario['rol'] === 'admin'): ?>
             <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('admin/usuarios'), ENT_QUOTES, 'UTF-8') ?>">Usuarios</a></li>

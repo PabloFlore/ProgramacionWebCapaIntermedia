@@ -10,8 +10,12 @@ require_once dirname(__DIR__) . '/app/autoload.php';
 use App\Controllers\ApiAdminController;
 use App\Controllers\ApiAuthController;
 use App\Controllers\ApiController;
+use App\Controllers\ApiCourseController;
+use App\Controllers\ApiInscripcionController;
 use App\Controllers\AuthController;
+use App\Controllers\CourseController;
 use App\Controllers\HomeController;
+use App\Controllers\InscripcionController;
 use App\Controllers\UserController;
 use App\Core\Container;
 use App\Core\Router;
@@ -44,9 +48,31 @@ $router->get('/admin/usuarios', [UserController::class, 'index']);
 $router->post('/admin/usuarios/{id}/bloquear', [UserController::class, 'bloquear']);
 $router->post('/admin/usuarios/{id}/reactivar', [UserController::class, 'reactivar']);
 
+$router->get('/curso/{id}', [CourseController::class, 'show']);
+$router->get('/admin/cursos', [CourseController::class, 'gestion']);
+$router->get('/mis-cursos', [InscripcionController::class, 'index']);
+$router->get('/diploma/{id}', [InscripcionController::class, 'diploma']);
+$router->get('/verificar-diploma', [InscripcionController::class, 'verificar']);
+
 $router->get('/api/v1/categorias', [ApiController::class, 'categorias']);
 $router->get('/api/v1/cursos', [ApiController::class, 'cursos']);
-$router->post('/api/v1/cursos', [ApiController::class, 'crearCurso']);
+$router->get('/api/v1/cursos/gestion', [ApiCourseController::class, 'gestion']);
+$router->get('/api/v1/cursos/{id}', [ApiCourseController::class, 'detalle']);
+$router->post('/api/v1/cursos', [ApiCourseController::class, 'crear']);
+$router->patch('/api/v1/cursos/{id}', [ApiCourseController::class, 'actualizar']);
+$router->post('/api/v1/cursos/{id}/baja', [ApiCourseController::class, 'baja']);
+$router->post('/api/v1/cursos/{id}/reactivar', [ApiCourseController::class, 'reactivar']);
+$router->post('/api/v1/cursos/{id}/niveles', [ApiCourseController::class, 'crearNivel']);
+$router->patch('/api/v1/niveles/{id}', [ApiCourseController::class, 'actualizarNivel']);
+$router->delete('/api/v1/niveles/{id}', [ApiCourseController::class, 'eliminarNivel']);
+
+$router->get('/api/v1/metodos-pago', [ApiInscripcionController::class, 'metodosPago']);
+$router->post('/api/v1/inscripciones', [ApiInscripcionController::class, 'comprar']);
+$router->get('/api/v1/mis-cursos', [ApiInscripcionController::class, 'misCursos']);
+$router->post('/api/v1/pagos/{id}/confirmar', [ApiInscripcionController::class, 'confirmarPago']);
+$router->post('/api/v1/inscripciones/{id}/niveles/{nivelId}/completar', [ApiInscripcionController::class, 'completarNivel']);
+$router->get('/api/v1/inscripciones/{id}/diploma', [ApiInscripcionController::class, 'diploma']);
+$router->get('/api/v1/diplomas/verificar', [ApiInscripcionController::class, 'verificarDiploma']);
 
 $router->post('/api/v1/registro', [ApiAuthController::class, 'registro']);
 $router->post('/api/v1/login', [ApiAuthController::class, 'login']);

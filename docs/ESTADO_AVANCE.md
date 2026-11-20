@@ -12,14 +12,14 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 
 | Rúbrica | Puntaje | Situación inicial |
 | --- | --- | --- |
-| Portal en operación | 16 | Parcial: catálogo y alta de curso por API; faltan niveles, inscripción, avance y baja accionable. |
-| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman. |
+| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance y baja lógica accionables; faltan reportes y moderación. |
+| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpeta 15 de Fase 1). |
 | Reportes con filtros | 10 | Muy parcial: solo listado de usuarios con filtros. |
-| Inyección de dependencias | 10 | Parcial: middleware inyectable, pero `new` interno en controladores/servicios/modelos. |
-| Módulo de administrador | 8 | Parcial: bloqueo/reactivación reales; categorías y moderación pendientes. |
-| Interacción y búsqueda | 8 | Parcial: filtro por categoría y búsqueda local; faltan comentarios, promedio y mensajería. |
-| Pagos y certificado | 8 | Ausente en código; la base de datos ya tiene tablas preparadas. |
-| Seguridad | 8 | Base sólida; falta reforzar CSRF en API mutante y tipado estricto de entrada. |
+| Inyección de dependencias | 10 | Ampliada: contenedor, servicios inyectados y modelos con PDO; queda limpiar `Controller::model()` en Fase 4. |
+| Módulo de administrador | 8 | Parcial: bloqueo/reactivación y gestión de cursos; categorías y moderación pendientes. |
+| Interacción y búsqueda | 8 | Parcial: filtro por categoría, búsqueda local y detalle de curso; faltan comentarios, promedio y mensajería. |
+| Pagos y certificado | 8 | Implementados: compra simulada, confirmación, avance por nivel, diploma automático y verificación por código. |
+| Seguridad | 8 | Base sólida: CSRF condicional en API, control de acceso y validación de entrada; pendiente logout vía `fetch`. |
 | Mensajes y avisos | 6 | Flash/éxito/error completos; falta confirmación antes de eliminar. |
 
 ## Decisiones técnicas acordadas
@@ -37,12 +37,23 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 | Fase | Contenido | Estado |
 | --- | --- | --- |
 | 0 | Contenedor DI, interfaces, PDO inyectado, `Request`, CSRF API, confirmaciones y este documento | Completada |
-| 1 | Cursos/niveles completos, inscripción, pagos simulados y diploma automático | Pendiente |
+| 1 | Cursos/niveles completos, inscripción, pagos simulados y diploma automático | Completada |
 | 2 | Reportes con filtros y formatos | Pendiente |
 | 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Pendiente |
 | 4 | Canje de token, tabla admin y logout vía `fetch` | Pendiente |
 
 ## Registro de avances
+
+### Fase 1 — Cursos navegables, pagos y certificados
+
+- `migrations/003_cursos_pagos_diplomas.sql` agrega métodos de pago, órdenes, detalle de orden, pagos y columnas de pago en inscripciones.
+- Nuevos modelos `Nivel`, `Inscripcion`, `ProgresoNivel`, `Diploma`, `MetodoPago`, `Orden` y `Pago`; `Curso` ahora soporta detalle, listado de gestión, actualización y baja lógica.
+- Nuevos servicios `CourseService`, `PagoService`, `DiplomaService` e `InscripcionService`, inyectados por constructor con PDO compartido y transacciones para compra, confirmación y avance.
+- API nueva: detalle/gestión/edición/baja de cursos, CRUD de niveles, métodos de pago, compra, confirmación de pago, completar nivel, diploma por inscripción y verificación por código.
+- Vistas nuevas: detalle de curso con checkout, gestión de cursos/niveles, mis cursos, certificado imprimible y verificación pública. El catálogo ahora enlaza al detalle.
+- Diálogos de confirmación reutilizados para baja/reactivación de cursos y eliminación de niveles con progreso.
+- Colección Postman ampliada con la carpeta 15 (18 peticiones) y variables `cursoId`, `nivelId`, `metodoPagoId`, `inscripcionId`, `pagoId` y `diplomaCodigo`.
+- Verificación: 67 archivos PHP con `php -l`, 11 scripts con `node --check`, JSON de Postman válido, `git diff --check` sin errores, migración 003 idempotente y smoke HTTP sobre BD temporal: `LOGIN_INSTRUCTOR=200`, `CREAR_CURSO=201`, `CREAR_NIVEL=201`, `GESTION_CURSOS=200`, `DETALLE_CURSO=200`, `LOGIN_ESTUDIANTE=200`, `METODOS_PAGO=200`, `COMPRA=201`, `COMPRA_REPETIDA=200`, `CONFIRMAR_PAGO=200`, `COMPLETAR_NIVEL=200`, `DIPLOMA_INSCRIPCION=200`, `VERIFICAR_DIPLOMA=200`, `VERIFICAR_INVALIDO=404`, `BAJA_CURSO=200`, `REACTIVAR_CURSO=200`, `ELIMINAR_NIVEL_CON_PROGRESO=409` y las seis vistas web en `200`. Log PHP limpio.
 
 ### Fase 0 — Cimientos
 
@@ -60,7 +71,7 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
-Base de datos: importar `schema.sql` y `seed.sql`. Si la BD ya existía, aplicar `migrations/001_align_schema_ui.sql`, `migrations/002_verificacion_correo.sql` y las que se añadan en fases posteriores.
+Base de datos: importar `schema.sql` y `seed.sql`. Para Fase 1 aplicar además `migrations/002_verificacion_correo.sql` y `migrations/003_cursos_pagos_diplomas.sql`. Si la BD ya existía de antes de la Fase 0, aplicar primero `migrations/001_align_schema_ui.sql` (no en BD frescas: duplica `genero`).
 
 Variables de entorno principales (plantilla en `.env.example`): `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, `APP_URL`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_SANDBOX`. La app usa `getenv()`: no carga `.env` automáticamente.
 
