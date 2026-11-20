@@ -13,6 +13,15 @@ class Usuario extends Model implements UsuarioRepositoryInterface
         foto_perfil, correo_verificado, intentos_fallidos, bloqueado, motivo_bloqueo,
         fecha_bloqueo, bloqueado_por, fecha_registro';
 
+    private const ORDEN_USUARIOS = [
+        'usuario_id' => 'usuario_id',
+        'nombre' => 'nombre',
+        'correo' => 'correo',
+        'rol' => 'rol',
+        'bloqueado' => 'bloqueado',
+        'fecha_registro' => 'fecha_registro',
+    ];
+
     public function buscarPorCorreo(string $correo): ?array
     {
         return $this->fetchOne(
@@ -186,9 +195,42 @@ class Usuario extends Model implements UsuarioRepositoryInterface
         );
     }
 
-    public function listar(?string $rol = null, ?bool $bloqueado = null): array
+    public function listar(?string $rol = null, ?bool $bloqueado = null, array $opciones = []): array
     {
-        $sql = 'SELECT ' . self::CAMPOS_PUBLICOS . ' FROM usuarios WHERE 1 = 1';
+        [$where, $params] = $this->condicionesListado($rol, $bloqueado, (string) ($opciones['q'] ?? ''));
+
+        $ordenSolicitado = (string) ($opciones['orden'] ?? 'usuario_id');
+        $orden = self::ORDEN_USUARIOS[$ordenSolicitado] ?? 'usuario_id';
+        $direccion = strtolower((string) ($opciones['direccion'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $pagina = max(1, (int) ($opciones['pagina'] ?? 1));
+        $limite = min(100, max(1, (int) ($opciones['limite'] ?? 25)));
+        $offset = ($pagina - 1) * $limite;
+
+        $sql = 'SELECT ' . self::CAMPOS_PUBLICOS . ' FROM usuarios' . $where;
+        $sql .= ' ORDER BY ' . $orden . ' ' . $direccion;
+
+        if ($orden !== 'usuario_id') {
+            $sql .= ', usuario_id DESC';
+        }
+
+        $sql .= ' LIMIT :limite OFFSET :offset';
+        $params['limite'] = $limite;
+        $params['offset'] = $offset;
+
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function contarListado(?string $rol = null, ?bool $bloqueado = null, string $q = ''): int
+    {
+        [$where, $params] = $this->condicionesListado($rol, $bloqueado, $q);
+        $fila = $this->fetchOne('SELECT COUNT(*) AS total FROM usuarios' . $where, $params);
+
+        return $fila ? (int) $fila['total'] : 0;
+    }
+
+    private function condicionesListado(?string $rol, ?bool $bloqueado, string $q): array
+    {
+        $sql = ' WHERE 1 = 1';
         $params = [];
 
         if ($rol !== null) {
@@ -201,9 +243,15 @@ class Usuario extends Model implements UsuarioRepositoryInterface
             $params['bloqueado'] = $bloqueado ? 1 : 0;
         }
 
-        $sql .= ' ORDER BY usuario_id ASC';
+        $q = trim($q);
 
-        return $this->fetchAll($sql, $params);
+        if ($q !== '') {
+            $sql .= ' AND (nombre LIKE :q_nombre OR correo LIKE :q_correo)';
+            $params['q_nombre'] = '%' . $q . '%';
+            $params['q_correo'] = '%' . $q . '%';
+        }
+
+        return [$sql, $params];
     }
 
     public function bloquear(int $id, string $motivo, int $adminId): bool

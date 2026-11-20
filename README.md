@@ -122,7 +122,7 @@ Base: `/api/v1`
 | PATCH | `/perfil` | Sesión | Actualizar nombre, género y fecha de nacimiento |
 | POST | `/perfil/contrasena` | Sesión | Cambiar contraseña |
 | POST | `/perfil/foto` | Sesión | Subir avatar (`multipart/form-data`) |
-| GET | `/admin/usuarios` | Admin | Listar usuarios con filtros `rol` y `bloqueado` |
+| GET | `/admin/usuarios?q=ana&orden=nombre&direccion=asc&pagina=1&limite=25` | Admin | Listar usuarios con búsqueda, orden, paginación y filtros `rol`/`bloqueado`; `orden` permite `usuario_id`, `nombre`, `correo`, `rol`, `bloqueado` o `fecha_registro`, `direccion` es `asc`/`desc` y `limite` va de 1 a 100 |
 | GET | `/reportes?desde=2026-01-01&hasta=2026-12-31&estado_pago=pagado` | Instructor/admin | Reportes con resumen, por rol, por curso y desglose; filtros `desde`, `hasta`, `curso_id`, `categoria_id`, `estado_pago`, `rol`, `bloqueado`, `pagina` y `limit` |
 | GET | `/admin/comentarios?curso_id=1&incluir_eliminados=1` | Admin | Moderación de comentarios; muestra causa y moderador cuando aplica |
 | POST | `/admin/comentarios/{id}/eliminar` | Admin | Eliminación lógica de un comentario con `causa_eliminacion` |
@@ -132,6 +132,8 @@ Base: `/api/v1`
 | PATCH | `/mensajes/{id}/leido` | Sesión | Marcar como leído un mensaje recibido |
 | POST | `/admin/usuarios/{id}/bloquear` | Admin | Bloquear usuario |
 | POST | `/admin/usuarios/{id}/reactivar` | Admin | Reactivar usuario |
+
+La respuesta de `GET /api/v1/admin/usuarios` incluye `data`, `total`, `pagina`, `limite` y `paginas`. Los parámetros `orden`, `direccion`, `pagina` y `limite` se validan en servidor: un valor no permitido responde `400` con un mensaje explicativo. La tabla web usa esos mismos parámetros y recarga solo el cuerpo de la tabla mediante `fetch`.
 
 ### Consumo desde el cliente con `fetch`
 
@@ -150,6 +152,9 @@ El cliente consume la API propia con `async/await` y `fetch`, sin recargar la p�
 | Detalle de curso | `public/js/comentarios.js` | Publicar comentarios, recargar promedio y listar opiniones |
 | Moderación | `public/js/admin-comentarios.js` | Eliminar comentarios indicando causa y confirmación |
 | Mensajería | `public/js/mensajes.js` | Enviar mensajes y marcarlos como leídos |
+| Header global | `public/js/logout.js` | Cerrar sesión con `POST /api/v1/logout` sin recargar, conservando el formulario web como fallback |
+| Dashboard | `public/js/verificacion.js` | Canjear el token de verificación y reenviar el correo |
+| Administración de usuarios | `public/js/admin-usuarios.js` | Buscar, ordenar, paginar, bloquear y reactivar sin recargar |
 
 La capa común está en `public/js/api.js`:
 
@@ -208,7 +213,8 @@ Se integra **SendGrid desde el servidor** (`AuthService` → `SendGridHelper`), 
 - Al registrar, se genera un token de 64 hexadecimales (`random_bytes`), se guarda **su hash SHA-256** en `usuarios.token_verificacion` y se programa su caducidad en `token_verificacion_expira` (24 h, configurable con `verification_hours`).
 - `SendGridHelper` envía el enlace `GET /verificar-correo?token=...`. El enlace invalida el token y marca `correo_verificado = 1`.
 - En modo sandbox la respuesta de registro y de reenvío incluye `token_verificacion` para poder probar el flujo sin leer el correo. En modo normal ese campo es `null`.
-- La cuenta **no se bloquea** mientras está sin verificar: el dashboard muestra un aviso con un botón que consume `POST /api/v1/verificar-correo/reenviar` vía `fetch`.
+- La cuenta **no se bloquea** mientras está sin verificar: el dashboard muestra un aviso con un botón que consume `POST /api/v1/verificar-correo/reenviar` vía `fetch` y un formulario para pegar el token y canjearlo con `POST /api/v1/verificar-correo`.
+- El canje por `fetch` oculta el aviso al tener éxito; el enlace `GET /verificar-correo?token=...` del correo sigue funcionando como alternativa sin JavaScript.
 - Errores de SendGrid se registran en `error_log` con el código HTTP y un fragmento de la respuesta; la key nunca se registra.
 
 ### Usuarios de demostración
@@ -261,7 +267,7 @@ Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_alig
 
 ## Pruebas
 
-La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15), reportes (carpeta 16) y Fase 3 (carpeta 17: búsqueda, comentarios, promedio, moderación, mensajería y categorías). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
+La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15), reportes (carpeta 16), Fase 3 (carpeta 17: búsqueda, comentarios, promedio, moderación, mensajería y categorías) y Fase 4 (carpeta 18: logout con CSRF condicional, canje de token y tabla admin con búsqueda, orden y paginación). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
 
 Con `SENDGRID_SANDBOX=true`, la petición de registro devuelve `token_verificacion`; ese valor se usa en la carpeta «14. Verificación de correo» para comprobar `200` y, repetida, `400` por token ya usado. El reenvío sin sesión espera `401`.
 

@@ -79,6 +79,7 @@ $scripts = is_array($scripts) ? $scripts : [$scripts];
 })();
 </script>
 <script src="<?= htmlspecialchars(Url::asset('js/api.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(Url::asset('js/logout.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="<?= htmlspecialchars(Url::asset('js/verificacion.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php foreach ($scripts as $script): ?>
   <?php if (is_string($script) && $script !== ''): ?>

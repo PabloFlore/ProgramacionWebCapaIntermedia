@@ -20,9 +20,14 @@ final class UserService
         return ($this->usuarios)->buscarPorId($usuarioId);
     }
 
-    public function listar(?string $rol = null, ?bool $bloqueado = null): array
+    public function listar(?string $rol = null, ?bool $bloqueado = null, array $opciones = []): array
     {
-        return ($this->usuarios)->listar($rol, $bloqueado);
+        return ($this->usuarios)->listar($rol, $bloqueado, $opciones);
+    }
+
+    public function contarListado(?string $rol = null, ?bool $bloqueado = null, string $q = ''): int
+    {
+        return ($this->usuarios)->contarListado($rol, $bloqueado, $q);
     }
 
     public function actualizarPerfil(int $usuarioId, array $datos, ?array $archivo = null): array

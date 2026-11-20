@@ -54,10 +54,13 @@ $navUsuario = Auth::user();
             <?= htmlspecialchars($navUsuario['nombre'], ENT_QUOTES, 'UTF-8') ?>
             <span class="badge bg-secondary text-uppercase"><?= htmlspecialchars($navUsuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
           </span>
-          <form method="post" action="<?= htmlspecialchars(Url::to('logout'), ENT_QUOTES, 'UTF-8') ?>">
-            <?= Csrf::field() ?>
-            <button class="btn btn-outline-danger btn-sm" type="submit">Cerrar sesión</button>
-          </form>
+          <div class="text-end">
+            <form id="formLogout" method="post" action="<?= htmlspecialchars(Url::to('logout'), ENT_QUOTES, 'UTF-8') ?>">
+              <?= Csrf::field() ?>
+              <button class="btn btn-outline-danger btn-sm" type="submit">Cerrar sesión</button>
+            </form>
+            <div id="logout-alert" aria-live="polite"></div>
+          </div>
         <?php else: ?>
           <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars(Url::to('login'), ENT_QUOTES, 'UTF-8') ?>">Iniciar sesión</a>
           <a class="btn btn-primary-soscur btn-sm" href="<?= htmlspecialchars(Url::to('registro'), ENT_QUOTES, 'UTF-8') ?>">Registrarse</a>

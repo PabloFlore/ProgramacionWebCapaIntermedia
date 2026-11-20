@@ -26,7 +26,9 @@ interface UsuarioRepositoryInterface
 
     public function reiniciarIntentos(int $id): bool;
 
-    public function listar(?string $rol = null, ?bool $bloqueado = null): array;
+    public function listar(?string $rol = null, ?bool $bloqueado = null, array $opciones = []): array;
+
+    public function contarListado(?string $rol = null, ?bool $bloqueado = null, string $q = ''): int;
 
     public function bloquear(int $id, string $motivo, int $adminId): bool;
 

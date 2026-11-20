@@ -12,14 +12,14 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 
 | Rúbrica | Puntaje | Situación actual |
 | --- | --- | --- |
-| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance, baja lógica, reportes, categorías, comentarios y mensajería; queda logout vía `fetch` en Fase 4. |
+| Portal en operación | 16 | Completo: catálogo, detalle, niveles, inscripción, avance, baja lógica, reportes, categorías, comentarios, mensajería y logout vía `fetch`. |
 | API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15, 16 y 17). |
 | Reportes con filtros | 10 | Implementados: reporte general admin y de ventas por instructor, con filtros y formatos. |
-| Inyección de dependencias | 10 | Ampliada: contenedor, servicios inyectados y modelos con PDO; queda limpiar `Controller::model()` en Fase 4. |
+| Inyección de dependencias | 10 | Completa: contenedor, servicios inyectados, modelos con PDO y `Controller::model()` eliminado. |
 | Módulo de administrador | 8 | Implementado: bloqueo/reactivación, gestión de cursos, categorías y moderación de comentarios. |
 | Interacción y búsqueda | 8 | Implementada: búsqueda global por título/descripción/categoría, comentarios con promedio y mensajería interna. |
 | Pagos y certificado | 8 | Implementados: compra simulada, confirmación, avance por nivel, diploma automático y verificación por código. |
-| Seguridad | 8 | Base sólida: CSRF condicional en API, control de acceso y validación de entrada; pendiente logout vía `fetch`. |
+| Seguridad | 8 | Base sólida: CSRF condicional en API, control de acceso, validación de entrada y logout vía `fetch` con fallback web. |
 | Mensajes y avisos | 6 | Completos: flash/éxito/error, avisos con `SoscurApi` y confirmación antes de eliminar. |
 
 ## Decisiones técnicas acordadas
@@ -40,9 +40,19 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 | 1 | Cursos/niveles completos, inscripción, pagos simulados y diploma automático | Completada |
 | 2 | Reportes con filtros y formatos | Completada |
 | 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Completada |
-| 4 | Canje de token, tabla admin y logout vía `fetch` | Pendiente |
+| 4 | Canje de token, tabla admin y logout vía `fetch` | Completada |
 
 ## Registro de avances
+
+### Fase 4 — Logout fetch, canje de token y tabla admin
+
+- Se eliminó el método muerto `Controller::model()`; no existían llamadas y los controladores ya reciben servicios por constructor desde el contenedor.
+- Logout vía `fetch`: `public/js/logout.js` intercepta el formulario del header y consume `POST /api/v1/logout` con `X-CSRF-Token`, redirige a `/login` y conserva `POST /logout` como fallback sin JavaScript. La prueba e2e ahora comprueba que no se envía el formulario web.
+- Canje de token: el dashboard muestra un formulario para pegar el token de verificación de sandbox y consume `POST /api/v1/verificar-correo`; al tener éxito oculta el aviso. El botón de reenvío muestra el token de sandbox y el enlace `GET /verificar-correo?token=...` sigue funcionando como alternativa.
+- Tabla admin: `GET /api/v1/admin/usuarios` acepta `q`, `orden`, `direccion`, `pagina` y `limite`, valida los valores con `400` y responde `data`, `total`, `pagina`, `limite` y `paginas`. El orden se restringe a columnas permitidas para evitar inyección SQL.
+- La vista `admin/usuarios` conserva el HTML inicial como fallback y usa `public/js/admin-usuarios.js` para buscar con debounce, ordenar, paginar, bloquear y reactivar mediante event delegation sin recargar. Las fechas se muestran en `dd/mm/yyyy`.
+- Colección Postman ampliada con la carpeta 18 (7 peticiones) y declaración de la variable `verifyToken`; README actualizado con los nuevos parámetros y la respuesta paginada.
+- Verificación: 85 archivos PHP con `php -l`, 18 scripts con `node --check`, JSON de Postman válido (18 carpetas; 7 peticiones en la Fase 4), `git diff --check` sin errores (solo warnings LF→CRLF), migraciones 002/003/004 aplicadas en BD temporal y smoke HTTP 23/23: API base, login admin, filtro/orden/paginación, metadatos, sin coincidencias, parámetros inválidos (`orden`, `limite`, `pagina`), vista web, login sin verificar, formulario de canje, canje exitoso, aviso oculto, token ya usado, logout con `Origin` sin CSRF (`403`), sesión activa tras `403`, token CSRF web, logout web fallback, logout API, sesión cerrada, logout sin sesión y log PHP limpio.
 
 ### Fase 3 — Categorías, comentarios, mensajería y búsqueda
 

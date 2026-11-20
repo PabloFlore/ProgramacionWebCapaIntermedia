@@ -5,11 +5,22 @@ use App\Helpers\Url;
 
 $title = 'Administración de usuarios';
 require __DIR__ . '/../templates/header.php';
+
+$adminId = (int) $admin['usuario_id'];
+$pagina = (int) $opciones['pagina'];
+$limite = (int) $opciones['limite'];
+$total = (int) $total;
+$paginas = (int) $paginas;
+$desde = $total === 0 ? 0 : (($pagina - 1) * $limite) + 1;
+$hasta = $desde === 0 ? 0 : $desde + count($usuarios) - 1;
+$inicioPaginacion = max(1, $pagina - 2);
+$finPaginacion = min(max(1, $paginas), $inicioPaginacion + 4);
+$inicioPaginacion = max(1, $finPaginacion - 4);
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>
     <h4 class="fw-bold mb-1">Usuarios</h4>
-    <p class="text-muted small mb-0">Lista, bloquea y reactiva cuentas del portal.</p>
+    <p class="text-muted small mb-0">Lista, busca, bloquea y reactiva cuentas del portal.</p>
   </div>
 </div>
 
@@ -21,8 +32,12 @@ require __DIR__ . '/../templates/header.php';
 
 <div id="admin-alert" aria-live="polite"></div>
 
-<form method="get" action="<?= htmlspecialchars(Url::to('admin/usuarios'), ENT_QUOTES, 'UTF-8') ?>" class="row g-2 align-items-end mb-3">
+<form id="formFiltrosUsuarios" method="get" action="<?= htmlspecialchars(Url::to('admin/usuarios'), ENT_QUOTES, 'UTF-8') ?>" class="row g-2 align-items-end mb-3">
   <div class="col-md-4">
+    <label class="form-label small" for="q">Buscar</label>
+    <input id="q" name="q" class="form-control" maxlength="100" placeholder="Nombre o correo" value="<?= htmlspecialchars((string) $filtroQ, ENT_QUOTES, 'UTF-8') ?>">
+  </div>
+  <div class="col-md-2">
     <label class="form-label small" for="rol">Rol</label>
     <select id="rol" name="rol" class="form-select">
       <option value="">Todos</option>
@@ -31,7 +46,7 @@ require __DIR__ . '/../templates/header.php';
       <option value="admin" <?= $filtroRol === 'admin' ? 'selected' : '' ?>>Administrador</option>
     </select>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-2">
     <label class="form-label small" for="bloqueado">Estado</label>
     <select id="bloqueado" name="bloqueado" class="form-select">
       <option value="">Todos</option>
@@ -39,32 +54,72 @@ require __DIR__ . '/../templates/header.php';
       <option value="1" <?= $filtroBloqueado === '1' ? 'selected' : '' ?>>Bloqueados</option>
     </select>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-2">
+    <label class="form-label small" for="limite">Por página</label>
+    <select id="limite" name="limite" class="form-select">
+      <option value="10" <?= $limite === 10 ? 'selected' : '' ?>>10</option>
+      <option value="25" <?= $limite === 25 ? 'selected' : '' ?>>25</option>
+      <option value="50" <?= $limite === 50 ? 'selected' : '' ?>>50</option>
+      <option value="100" <?= $limite === 100 ? 'selected' : '' ?>>100</option>
+    </select>
+  </div>
+  <div class="col-md-2">
     <button class="btn btn-outline-secondary w-100" type="submit">Filtrar</button>
   </div>
+  <input type="hidden" name="orden" value="<?= htmlspecialchars((string) $opciones['orden'], ENT_QUOTES, 'UTF-8') ?>">
+  <input type="hidden" name="direccion" value="<?= htmlspecialchars((string) $opciones['direccion'], ENT_QUOTES, 'UTF-8') ?>">
+  <input type="hidden" name="pagina" value="<?= $pagina ?>">
 </form>
 
-<div class="card border shadow-sm">
+<div id="admin-tabla" class="card border shadow-sm"
+     data-admin-id="<?= $adminId ?>"
+     data-total="<?= $total ?>"
+     data-pagina="<?= $pagina ?>"
+     data-paginas="<?= $paginas ?>"
+     data-limite="<?= $limite ?>"
+     data-orden="<?= htmlspecialchars((string) $opciones['orden'], ENT_QUOTES, 'UTF-8') ?>"
+     data-direccion="<?= htmlspecialchars((string) $opciones['direccion'], ENT_QUOTES, 'UTF-8') ?>">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>Usuario</th>
-          <th>Rol</th>
-          <th>Estado</th>
-          <th>Registro</th>
+          <th>
+            <button class="btn btn-link p-0 text-decoration-none text-reset" type="button" data-orden="nombre">
+              Usuario <span class="js-orden-indicador" aria-hidden="true"></span>
+            </button>
+          </th>
+          <th>
+            <button class="btn btn-link p-0 text-decoration-none text-reset" type="button" data-orden="rol">
+              Rol <span class="js-orden-indicador" aria-hidden="true"></span>
+            </button>
+          </th>
+          <th>
+            <button class="btn btn-link p-0 text-decoration-none text-reset" type="button" data-orden="bloqueado">
+              Estado <span class="js-orden-indicador" aria-hidden="true"></span>
+            </button>
+          </th>
+          <th>
+            <button class="btn btn-link p-0 text-decoration-none text-reset" type="button" data-orden="fecha_registro">
+              Registro <span class="js-orden-indicador" aria-hidden="true"></span>
+            </button>
+          </th>
           <th class="text-end">Acciones</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="usuarios-tbody">
         <?php if (empty($usuarios)): ?>
           <tr><td colspan="5" class="text-center text-muted py-4">No hay usuarios para este filtro.</td></tr>
         <?php endif; ?>
 
         <?php foreach ($usuarios as $usuario): ?>
           <?php
-          $esPropio = (int) $usuario['usuario_id'] === (int) $admin['usuario_id'];
+          $esPropio = (int) $usuario['usuario_id'] === $adminId;
           $bloqueado = (int) $usuario['bloqueado'] === 1;
+          $fechaRegistro = '';
+          if (!empty($usuario['fecha_registro'])) {
+              $marcaTiempo = strtotime((string) $usuario['fecha_registro']);
+              $fechaRegistro = $marcaTiempo === false ? '' : date('d/m/Y', $marcaTiempo);
+          }
           ?>
           <tr data-usuario-id="<?= (int) $usuario['usuario_id'] ?>" data-bloqueado="<?= $bloqueado ? '1' : '0' ?>">
             <td>
@@ -82,7 +137,7 @@ require __DIR__ . '/../templates/header.php';
                     : '' ?>
               </div>
             </td>
-            <td class="small text-muted"><?= htmlspecialchars((string) ($usuario['fecha_registro'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+            <td class="small text-muted"><?= htmlspecialchars($fechaRegistro, ENT_QUOTES, 'UTF-8') ?></td>
             <td class="text-end">
               <?php if ($esPropio): ?>
                 <span class="text-muted small">Tu cuenta</span>
@@ -114,6 +169,26 @@ require __DIR__ . '/../templates/header.php';
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top p-3">
+    <span id="admin-resumen" class="small text-muted">
+      Mostrando <?= $desde ?> a <?= $hasta ?> de <?= $total ?> usuarios
+    </span>
+    <nav id="paginacion-usuarios" aria-label="Paginación de usuarios">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item <?= $pagina <= 1 ? 'disabled' : '' ?>">
+          <button class="page-link" type="button" data-pagina="<?= max(1, $pagina - 1) ?>">Anterior</button>
+        </li>
+        <?php for ($paginaActual = $inicioPaginacion; $paginaActual <= $finPaginacion; $paginaActual++): ?>
+          <li class="page-item <?= $paginaActual === $pagina ? 'active' : '' ?>">
+            <button class="page-link" type="button" data-pagina="<?= $paginaActual ?>"><?= $paginaActual ?></button>
+          </li>
+        <?php endfor; ?>
+        <li class="page-item <?= $paginas === 0 || $pagina >= $paginas ? 'disabled' : '' ?>">
+          <button class="page-link" type="button" data-pagina="<?= min(max(1, $paginas), $pagina + 1) ?>">Siguiente</button>
+        </li>
+      </ul>
+    </nav>
   </div>
 </div>
 <?php

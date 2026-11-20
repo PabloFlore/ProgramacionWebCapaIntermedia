@@ -13,6 +13,7 @@ const CURSO_TITULO = `Curso E2E ${stamp}`;
 const resultados = [];
 const erroresConsola = [];
 const navegaciones = [];
+const peticiones = [];
 
 function ok(nombre, cond, extra) {
   resultados.push({ nombre, ok: !!cond, extra: extra || '' });
@@ -26,6 +27,9 @@ async function registrarPagina(page, etiqueta) {
   });
   page.on('framenavigated', (f) => {
     if (f === page.mainFrame()) navegaciones.push(`${etiqueta} -> ${f.url()}`);
+  });
+  page.on('request', (r) => {
+    if (r.method() !== 'GET') peticiones.push(`${etiqueta} ${r.method()} ${r.url()}`);
   });
 }
 
@@ -85,6 +89,8 @@ async function main() {
   await page.click('#btnCrearCuenta');
   await page.waitForURL(/\/dashboard/, { timeout: 15000 }).catch(() => {});
   ok('Registro: valido con foto redirige a dashboard', page.url().includes('/dashboard'), page.url());
+  const formToken = await page.locator('#formCanjearToken').count();
+  ok('Verificación: formulario de canje disponible en dashboard', formToken === 1, `formularios=${formToken}`);
 
   await page.goto(BASE + '/perfil', { waitUntil: 'load' });
   await page.fill('#nombre', 'E2E Editado');
@@ -112,8 +118,13 @@ async function main() {
   const okPass = await page.locator('#password-alert .alert-success').count();
   ok('Perfil: cambio de contrasena exitoso', okPass > 0, `alertas=${okPass}`);
 
+  const peticionesAntesLogout = peticiones.length;
   await page.click('form[action$="/logout"] button[type="submit"]');
-  await page.waitForLoadState('load');
+  await page.waitForURL(/\/login/, { timeout: 10000 });
+  const peticionesLogout = peticiones.slice(peticionesAntesLogout);
+  const logoutApi = peticionesLogout.some((p) => p.includes('/api/v1/logout'));
+  const logoutWeb = peticionesLogout.some((p) => /POST http:\/\/127\.0\.0\.1:8000\/logout(?:\?|$)/.test(p));
+  ok('Logout: cierra sesión vía fetch sin envío web', logoutApi && !logoutWeb, peticionesLogout.join(' | '));
   await page.goto(BASE + '/login', { waitUntil: 'load' });
   await page.fill('#correo', EMAIL);
   await page.fill('#contrasena', 'Incorrecta9!');
@@ -142,6 +153,14 @@ async function main() {
   const fila = pa.locator(`tr[data-usuario-id]`, { hasText: EMAIL });
   ok('Admin: usuario de prueba listado', (await fila.count()) === 1);
   const idUsuario = await fila.getAttribute('data-usuario-id');
+
+  const navAdminFiltros = navegaciones.length;
+  await pa.fill('#q', EMAIL);
+  await pa.waitForTimeout(900);
+  const filasTrasBusqueda = await pa.locator('#usuarios-tbody tr[data-usuario-id]').count();
+  ok('Admin: búsqueda filtra sin recargar', filasTrasBusqueda === 1 && navegaciones.length === navAdminFiltros, `filas=${filasTrasBusqueda}`);
+  await pa.fill('#q', '');
+  await pa.waitForTimeout(900);
 
   const navAdmin = navegaciones.length;
   await fila.locator('form[data-user-action="bloquear"] button[type="submit"]').click();

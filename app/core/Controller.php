@@ -9,13 +9,6 @@ use App\Helpers\Url;
 
 abstract class Controller
 {
-    protected function model(string $name)
-    {
-        $class = 'App\\Models\\' . $name;
-
-        return new $class();
-    }
-
     protected function view(string $view, array $data = []): void
     {
         extract($data, EXTR_SKIP);

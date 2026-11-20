@@ -10,6 +10,8 @@ use App\Services\UserService;
 
 class ApiAdminController extends JsonController
 {
+    private const ORDENES_USUARIOS = ['usuario_id', 'nombre', 'correo', 'rol', 'bloqueado', 'fecha_registro'];
+
     private UserService $userService;
 
     public function __construct(UserService $userService)
@@ -44,9 +46,23 @@ class ApiAdminController extends JsonController
             return;
         }
 
-        $usuarios = $this->userService->listar($rol, $bloqueado);
+        $opciones = $this->opcionesListado();
 
-        $this->respond(['data' => $usuarios], 200);
+        if ($opciones === null) {
+            return;
+        }
+
+        $usuarios = $this->userService->listar($rol, $bloqueado, $opciones);
+        $total = $this->userService->contarListado($rol, $bloqueado, $opciones['q']);
+        $paginas = $total === 0 ? 0 : (int) ceil($total / $opciones['limite']);
+
+        $this->respond([
+            'data' => $usuarios,
+            'total' => $total,
+            'pagina' => $opciones['pagina'],
+            'limite' => $opciones['limite'],
+            'paginas' => $paginas,
+        ], 200);
     }
 
     public function bloquear(string $id): void
@@ -96,5 +112,53 @@ class ApiAdminController extends JsonController
         }
 
         $this->respond(['mensaje' => $resultado['message']], 200);
+    }
+
+    private function opcionesListado(): ?array
+    {
+        $q = Request::string('q', $_GET);
+
+        if (mb_strlen($q) > 100) {
+            $this->error(400, 'q no debe exceder 100 caracteres');
+            return null;
+        }
+
+        $orden = Request::string('orden', $_GET, 'usuario_id');
+        $orden = $orden === '' ? 'usuario_id' : $orden;
+
+        if (!in_array($orden, self::ORDENES_USUARIOS, true)) {
+            $this->error(400, 'orden no es válido');
+            return null;
+        }
+
+        $direccion = strtolower(Request::string('direccion', $_GET, 'desc'));
+        $direccion = $direccion === '' ? 'desc' : $direccion;
+
+        if (!in_array($direccion, ['asc', 'desc'], true)) {
+            $this->error(400, 'direccion debe ser asc o desc');
+            return null;
+        }
+
+        $pagina = Request::int('pagina', $_GET, 1) ?? 1;
+
+        if ($pagina < 1) {
+            $this->error(400, 'pagina debe ser mayor o igual a 1');
+            return null;
+        }
+
+        $limite = Request::int('limite', $_GET, 25) ?? 25;
+
+        if ($limite < 1 || $limite > 100) {
+            $this->error(400, 'limite debe estar entre 1 y 100');
+            return null;
+        }
+
+        return [
+            'q' => $q,
+            'orden' => $orden,
+            'direccion' => $direccion,
+            'pagina' => $pagina,
+            'limite' => $limite,
+        ];
     }
 }

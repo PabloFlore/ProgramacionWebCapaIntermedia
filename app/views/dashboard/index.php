@@ -19,14 +19,27 @@ $descripcionRol = [
 <?php endif; ?>
 
 <?php if ((int) ($usuario['correo_verificado'] ?? 1) === 0): ?>
-  <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="status">
-    <span>
-      <i class="bi bi-envelope-exclamation" aria-hidden="true"></i>
-      Tu correo todavía no está verificado. Revisa tu bandeja o solicita un nuevo enlace.
-    </span>
-    <button id="btnReenviarVerificacion" class="btn btn-outline-warning btn-sm" type="button">
-      Reenviar correo
-    </button>
+  <div id="aviso-correo-no-verificado" class="alert alert-warning" role="status">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+      <span>
+        <i class="bi bi-envelope-exclamation" aria-hidden="true"></i>
+        Tu correo todavía no está verificado. Revisa tu bandeja o solicita un nuevo enlace.
+      </span>
+      <button id="btnReenviarVerificacion" class="btn btn-outline-warning btn-sm" type="button">
+        Reenviar correo
+      </button>
+    </div>
+    <form id="formCanjearToken" class="row g-2 align-items-end mt-3">
+      <div class="col-md-8">
+        <label class="form-label small" for="tokenVerificacion">Token de verificación (modo sandbox)</label>
+        <input id="tokenVerificacion" name="token" class="form-control form-control-sm" maxlength="64" placeholder="Pega aquí el token" autocomplete="off">
+      </div>
+      <div class="col-md-4">
+        <button id="btnCanjearToken" class="btn btn-outline-primary btn-sm w-100" type="submit">
+          Canjear token
+        </button>
+      </div>
+    </form>
   </div>
   <div id="verificacion-alert" aria-live="polite"></div>
 <?php endif; ?>
