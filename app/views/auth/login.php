@@ -29,7 +29,9 @@ require __DIR__ . '/../templates/header.php';
           </div>
         <?php endif; ?>
 
-        <form method="post" action="<?= htmlspecialchars(Url::to('login'), ENT_QUOTES, 'UTF-8') ?>">
+        <div id="login-alert" aria-live="polite"></div>
+
+        <form id="formLogin" method="post" action="<?= htmlspecialchars(Url::to('login'), ENT_QUOTES, 'UTF-8') ?>">
           <?= Csrf::field() ?>
           <div class="mb-3">
             <label class="form-label" for="correo">Correo electrónico</label>
@@ -40,7 +42,7 @@ require __DIR__ . '/../templates/header.php';
             <label class="form-label" for="contrasena">Contraseña</label>
             <input id="contrasena" name="contrasena" type="password" class="form-control" required>
           </div>
-          <button class="btn btn-primary-soscur w-100" type="submit">Entrar</button>
+          <button id="btnLogin" class="btn btn-primary-soscur w-100" type="submit">Entrar</button>
         </form>
 
         <p class="text-center small mt-3 mb-0">
@@ -51,4 +53,7 @@ require __DIR__ . '/../templates/header.php';
     </div>
   </div>
 </div>
-<?php require __DIR__ . '/../templates/footer.php'; ?>
+<?php
+$pageScript = 'js/auth.js';
+require __DIR__ . '/../templates/footer.php';
+?>

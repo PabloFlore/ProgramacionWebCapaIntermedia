@@ -11,4 +11,12 @@ return [
         'pass' => getenv('DB_PASS') !== false ? getenv('DB_PASS') : '',
         'charset' => 'utf8mb4',
     ],
+    'sendgrid' => [
+        'key' => getenv('SENDGRID_API_KEY') ?: '',
+        'from' => getenv('SENDGRID_FROM_EMAIL') ?: '',
+        'sandbox' => filter_var(getenv('SENDGRID_SANDBOX') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+        'url' => 'https://api.sendgrid.com/v3/mail/send',
+    ],
+    'app_url' => getenv('APP_URL') ?: '',
+    'verification_hours' => 24,
 ];

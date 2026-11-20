@@ -76,10 +76,10 @@ class Usuario extends Model
     {
         $sql = 'INSERT INTO usuarios (
                     nombre, correo, contrasena_hash, rol, genero, fecha_nacimiento,
-                    foto_perfil, correo_verificado
+                    foto_perfil, correo_verificado, token_verificacion, token_verificacion_expira
                 ) VALUES (
                     :nombre, :correo, :contrasena_hash, :rol, :genero, :fecha_nacimiento,
-                    :foto_perfil, :correo_verificado
+                    :foto_perfil, :correo_verificado, :token_verificacion, :token_verificacion_expira
                 )';
 
         $statement = $this->db->prepare($sql);
@@ -103,6 +103,16 @@ class Usuario extends Model
             isset($datos['foto_perfil']) ? PDO::PARAM_STR : PDO::PARAM_NULL
         );
         $statement->bindValue(':correo_verificado', (int) ($datos['correo_verificado'] ?? 0), PDO::PARAM_INT);
+        $statement->bindValue(
+            ':token_verificacion',
+            $datos['token_verificacion'] ?? null,
+            isset($datos['token_verificacion']) ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
+        $statement->bindValue(
+            ':token_verificacion_expira',
+            $datos['token_verificacion_expira'] ?? null,
+            isset($datos['token_verificacion_expira']) ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
         $statement->execute();
 
         return $this->lastInsertId();
@@ -237,5 +247,50 @@ class Usuario extends Model
         $row = $this->fetchOne($sql, $params);
 
         return $row ? (int) $row['total'] : 0;
+    }
+
+    public function buscarPorTokenVerificacion(string $tokenHash): ?array
+    {
+        return $this->fetchOne(
+            'SELECT ' . self::CAMPOS_PUBLICOS . ', token_verificacion, token_verificacion_expira
+             FROM usuarios
+             WHERE token_verificacion = :token
+             LIMIT 1',
+            ['token' => $tokenHash]
+        );
+    }
+
+    public function buscarVerificacionPorId(int $id): ?array
+    {
+        return $this->fetchOne(
+            'SELECT usuario_id, nombre, correo, correo_verificado, token_verificacion_expira
+             FROM usuarios
+             WHERE usuario_id = :id
+             LIMIT 1',
+            ['id' => $id]
+        );
+    }
+
+    public function marcarCorreoVerificado(int $id): bool
+    {
+        return $this->execute(
+            'UPDATE usuarios
+             SET correo_verificado = 1,
+                 token_verificacion = NULL,
+                 token_verificacion_expira = NULL
+             WHERE usuario_id = :id',
+            ['id' => $id]
+        );
+    }
+
+    public function actualizarTokenVerificacion(int $id, string $tokenHash, string $expira): bool
+    {
+        return $this->execute(
+            'UPDATE usuarios
+             SET token_verificacion = :token,
+                 token_verificacion_expira = :expira
+             WHERE usuario_id = :id',
+            ['token' => $tokenHash, 'expira' => $expira, 'id' => $id]
+        );
     }
 }

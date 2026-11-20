@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Middleware\AccessMiddleware;
+use App\Middleware\CorsMiddleware;
+use App\Middleware\MiddlewareInterface;
+
 class Router
 {
     private array $routes = [
@@ -14,29 +18,58 @@ class Router
         'DELETE' => [],
     ];
 
-    public function get(string $uri, callable|array $action): void
+    private array $accessPolicy;
+
+    public function __construct(?array $accessPolicy = null)
     {
-        $this->routes['GET'][$this->normalize($uri)] = $action;
+        $this->accessPolicy = $accessPolicy ?? require __DIR__ . '/../config/access.php';
     }
 
-    public function post(string $uri, callable|array $action): void
+    public function get(string $uri, callable|array $action, array $middleware = []): void
     {
-        $this->routes['POST'][$this->normalize($uri)] = $action;
+        $this->register('GET', $uri, $action, $middleware);
     }
 
-    public function put(string $uri, callable|array $action): void
+    public function post(string $uri, callable|array $action, array $middleware = []): void
     {
-        $this->routes['PUT'][$this->normalize($uri)] = $action;
+        $this->register('POST', $uri, $action, $middleware);
     }
 
-    public function patch(string $uri, callable|array $action): void
+    public function put(string $uri, callable|array $action, array $middleware = []): void
     {
-        $this->routes['PATCH'][$this->normalize($uri)] = $action;
+        $this->register('PUT', $uri, $action, $middleware);
     }
 
-    public function delete(string $uri, callable|array $action): void
+    public function patch(string $uri, callable|array $action, array $middleware = []): void
     {
-        $this->routes['DELETE'][$this->normalize($uri)] = $action;
+        $this->register('PATCH', $uri, $action, $middleware);
+    }
+
+    public function delete(string $uri, callable|array $action, array $middleware = []): void
+    {
+        $this->register('DELETE', $uri, $action, $middleware);
+    }
+
+    private function register(string $method, string $uri, callable|array $action, array $middleware): void
+    {
+        $uri = $this->normalize($uri);
+        $middleware = array_merge($middleware, $this->accessMiddleware($method, $uri));
+
+        $this->routes[$method][$uri] = [
+            'action' => $action,
+            'middleware' => $middleware,
+        ];
+    }
+
+    private function accessMiddleware(string $method, string $uri): array
+    {
+        $key = $method . ' ' . $uri;
+
+        if (!array_key_exists($key, $this->accessPolicy)) {
+            return [];
+        }
+
+        return [new AccessMiddleware($this->accessPolicy[$key])];
     }
 
     public function dispatch(string $uri, string $method): void
@@ -44,9 +77,31 @@ class Router
         $uri = $this->normalize(parse_url($uri, PHP_URL_PATH) ?? '/');
         $method = strtoupper($method);
 
+        if (str_starts_with($uri, '/api/')) {
+            $this->runMiddleware(
+                [new CorsMiddleware($method)],
+                $uri,
+                function () use ($uri, $method): void {
+                    $this->dispatchRoute($uri, $method);
+                }
+            );
+            return;
+        }
+
+        $this->dispatchRoute($uri, $method);
+    }
+
+    private function dispatchRoute(string $uri, string $method): void
+    {
         $match = $this->match($method, $uri);
         if ($match !== null) {
-            $this->callAction($match['action'], $match['params']);
+            $this->runMiddleware(
+                $match['middleware'],
+                $uri,
+                function () use ($match): void {
+                    $this->callAction($match['action'], $match['params']);
+                }
+            );
             return;
         }
 
@@ -73,20 +128,44 @@ class Router
         }
 
         if (isset($this->routes[$method][$uri])) {
-            return ['action' => $this->routes[$method][$uri], 'params' => []];
+            return [
+                'action' => $this->routes[$method][$uri]['action'],
+                'middleware' => $this->routes[$method][$uri]['middleware'],
+                'params' => [],
+            ];
         }
 
-        foreach ($this->routes[$method] as $route => $action) {
+        foreach ($this->routes[$method] as $route => $definition) {
             $pattern = preg_replace('#\{[a-zA-Z_][a-zA-Z0-9_-]*\}#', '([^/]+)', $route);
             $pattern = '#^' . $pattern . '$#';
 
             if (preg_match($pattern, $uri, $matches)) {
                 array_shift($matches);
-                return ['action' => $action, 'params' => $matches];
+                return [
+                    'action' => $definition['action'],
+                    'middleware' => $definition['middleware'],
+                    'params' => $matches,
+                ];
             }
         }
 
         return null;
+    }
+
+    private function runMiddleware(array $middleware, string $uri, callable $next): void
+    {
+        foreach (array_reverse($middleware) as $layer) {
+            if (!$layer instanceof MiddlewareInterface) {
+                throw new \InvalidArgumentException('El middleware debe implementar MiddlewareInterface.');
+            }
+
+            $nextLayer = $next;
+            $next = static function () use ($layer, $uri, $nextLayer): void {
+                $layer->handle($uri, $nextLayer);
+            };
+        }
+
+        $next();
     }
 
     private function sendError(int $status, string $message, bool $json): void

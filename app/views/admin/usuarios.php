@@ -19,6 +19,8 @@ require __DIR__ . '/../templates/header.php';
   </div>
 <?php endif; ?>
 
+<div id="admin-alert" aria-live="polite"></div>
+
 <form method="get" action="<?= htmlspecialchars(Url::to('admin/usuarios'), ENT_QUOTES, 'UTF-8') ?>" class="row g-2 align-items-end mb-3">
   <div class="col-md-4">
     <label class="form-label small" for="rol">Rol</label>
@@ -64,35 +66,48 @@ require __DIR__ . '/../templates/header.php';
           $esPropio = (int) $usuario['usuario_id'] === (int) $admin['usuario_id'];
           $bloqueado = (int) $usuario['bloqueado'] === 1;
           ?>
-          <tr>
+          <tr data-usuario-id="<?= (int) $usuario['usuario_id'] ?>" data-bloqueado="<?= $bloqueado ? '1' : '0' ?>">
             <td>
               <div class="fw-semibold"><?= htmlspecialchars((string) $usuario['nombre'], ENT_QUOTES, 'UTF-8') ?></div>
               <div class="text-muted small"><?= htmlspecialchars((string) $usuario['correo'], ENT_QUOTES, 'UTF-8') ?></div>
             </td>
             <td><span class="badge bg-secondary text-uppercase"><?= htmlspecialchars((string) $usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span></td>
             <td>
-              <span class="badge <?= $bloqueado ? 'bg-danger' : 'bg-success' ?>">
+              <span class="badge js-estado-badge <?= $bloqueado ? 'bg-danger' : 'bg-success' ?>">
                 <?= $bloqueado ? 'Bloqueado' : 'Activo' ?>
               </span>
-              <?php if ($bloqueado && !empty($usuario['motivo_bloqueo'])): ?>
-                <div class="text-muted small"><?= htmlspecialchars((string) $usuario['motivo_bloqueo'], ENT_QUOTES, 'UTF-8') ?></div>
-              <?php endif; ?>
+              <div class="js-motivo-bloqueo text-muted small">
+                <?= $bloqueado && !empty($usuario['motivo_bloqueo'])
+                    ? htmlspecialchars((string) $usuario['motivo_bloqueo'], ENT_QUOTES, 'UTF-8')
+                    : '' ?>
+              </div>
             </td>
             <td class="small text-muted"><?= htmlspecialchars((string) ($usuario['fecha_registro'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
             <td class="text-end">
               <?php if ($esPropio): ?>
                 <span class="text-muted small">Tu cuenta</span>
-              <?php elseif ($bloqueado): ?>
-                <form method="post" action="<?= htmlspecialchars(Url::to('admin/usuarios/' . (int) $usuario['usuario_id'] . '/reactivar'), ENT_QUOTES, 'UTF-8') ?>">
-                  <?= Csrf::field() ?>
-                  <button class="btn btn-sm btn-outline-success" type="submit">Reactivar</button>
-                </form>
               <?php else: ?>
-                <form method="post" action="<?= htmlspecialchars(Url::to('admin/usuarios/' . (int) $usuario['usuario_id'] . '/bloquear'), ENT_QUOTES, 'UTF-8') ?>" class="d-flex justify-content-end gap-1">
-                  <?= Csrf::field() ?>
-                  <input name="motivo" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Motivo" maxlength="255" required>
-                  <button class="btn btn-sm btn-outline-danger" type="submit">Bloquear</button>
-                </form>
+                <div class="js-acciones-bloqueado <?= $bloqueado ? '' : 'd-none' ?>">
+                  <form method="post"
+                        action="<?= htmlspecialchars(Url::to('admin/usuarios/' . (int) $usuario['usuario_id'] . '/reactivar'), ENT_QUOTES, 'UTF-8') ?>"
+                        data-user-action="reactivar"
+                        data-usuario-id="<?= (int) $usuario['usuario_id'] ?>">
+                    <?= Csrf::field() ?>
+                    <button class="btn btn-sm btn-outline-success" type="submit">Reactivar</button>
+                  </form>
+                </div>
+
+                <div class="js-acciones-activo <?= $bloqueado ? 'd-none' : '' ?>">
+                  <form method="post"
+                        action="<?= htmlspecialchars(Url::to('admin/usuarios/' . (int) $usuario['usuario_id'] . '/bloquear'), ENT_QUOTES, 'UTF-8') ?>"
+                        class="d-flex justify-content-end gap-1"
+                        data-user-action="bloquear"
+                        data-usuario-id="<?= (int) $usuario['usuario_id'] ?>">
+                    <?= Csrf::field() ?>
+                    <input name="motivo" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Motivo" maxlength="255" required>
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Bloquear</button>
+                  </form>
+                </div>
               <?php endif; ?>
             </td>
           </tr>
@@ -101,4 +116,7 @@ require __DIR__ . '/../templates/header.php';
     </table>
   </div>
 </div>
-<?php require __DIR__ . '/../templates/footer.php'; ?>
+<?php
+$pageScript = 'js/admin-usuarios.js';
+require __DIR__ . '/../templates/footer.php';
+?>

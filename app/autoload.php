@@ -10,6 +10,7 @@ spl_autoload_register(static function (string $class): void {
         'App\\Helpers\\' => __DIR__ . '/helpers/',
         'App\\Services\\' => __DIR__ . '/services/',
         'App\\Core\\' => __DIR__ . '/core/',
+        'App\\Middleware\\' => __DIR__ . '/middleware/',
     ];
 
     foreach ($prefixes as $prefix => $directory) {

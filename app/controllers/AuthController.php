@@ -63,6 +63,15 @@ class AuthController extends Controller
         $this->redirect('dashboard');
     }
 
+    public function verificarCorreo(): void
+    {
+        $token = (string) ($_GET['token'] ?? '');
+        $resultado = $this->authService->verificarCorreo($token);
+
+        $this->flash($resultado['ok'] ? 'success' : 'error', $resultado['message']);
+        $this->redirect('login');
+    }
+
     public function showRegister(): void
     {
         if (Auth::check()) {

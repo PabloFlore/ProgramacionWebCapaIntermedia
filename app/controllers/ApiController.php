@@ -26,6 +26,11 @@ class ApiController extends JsonController
             || (is_string($value) && ctype_digit($value) && (int) $value > 0);
     }
 
+    public function categorias(): void
+    {
+        $this->respond(['data' => (new Categoria())->listar()], 200);
+    }
+
     public function cursos(): void
     {
         $categoriaId = $_GET['categoria_id'] ?? null;
@@ -75,11 +80,13 @@ class ApiController extends JsonController
 
         $instructor = (new Usuario())->buscarPorId($instructorId);
 
-        if ($instructor === null
-            || (int) $instructor['bloqueado'] === 1
-            || !in_array($instructor['rol'], self::ROLES_INSTRUCTOR, true)
-        ) {
+        if ($instructor === null || (int) $instructor['bloqueado'] === 1) {
             $this->error(401, 'No tienes permisos para registrar cursos');
+            return;
+        }
+
+        if (!in_array($instructor['rol'], self::ROLES_INSTRUCTOR, true)) {
+            $this->error(403, 'No tienes permisos para registrar cursos');
             return;
         }
 

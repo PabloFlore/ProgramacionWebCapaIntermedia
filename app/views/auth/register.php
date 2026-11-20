@@ -31,7 +31,9 @@ $rolSeleccionado = (string) ($old['rol'] ?? 'estudiante');
           </div>
         <?php endif; ?>
 
-        <form method="post" action="<?= htmlspecialchars(Url::to('registro'), ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data">
+        <div id="register-alert" aria-live="polite"></div>
+
+        <form id="formRegistro" method="post" action="<?= htmlspecialchars(Url::to('registro'), ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data">
           <?= Csrf::field() ?>
           <div class="row g-3">
             <div class="col-12">
@@ -99,7 +101,7 @@ $rolSeleccionado = (string) ($old['rol'] ?? 'estudiante');
             </div>
 
             <div class="col-12">
-              <button class="btn btn-primary-soscur w-100" type="submit">Crear cuenta</button>
+              <button id="btnCrearCuenta" class="btn btn-primary-soscur w-100" type="submit">Crear cuenta</button>
             </div>
           </div>
         </form>
@@ -112,4 +114,7 @@ $rolSeleccionado = (string) ($old['rol'] ?? 'estudiante');
     </div>
   </div>
 </div>
-<?php require __DIR__ . '/../templates/footer.php'; ?>
+<?php
+$pageScript = 'js/auth.js';
+require __DIR__ . '/../templates/footer.php';
+?>

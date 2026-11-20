@@ -7,7 +7,17 @@
     "variable": [
         {
             "key": "baseUrl",
-            "value": "http://localhost/soscur-portal/public/api/v1",
+            "value": "http://localhost/PWCI/public/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "corsAllowedOrigin",
+            "value": "http://localhost:5500",
+            "type": "string"
+        },
+        {
+            "key": "corsDeniedOrigin",
+            "value": "http://origen-no-autorizado.test",
             "type": "string"
         }
     ],
@@ -40,7 +50,7 @@
                         "type": "text/javascript",
                         "exec": [
                             "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                            "pm.test('Content-Type JSON', () => pm.response.to.have.header('Content-Type', /application\\/json/));",
+                            "pm.test('Content-Type JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                             "pm.test('Incluye data y pagination', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j.pagination).to.have.property('total_pages'); });"
                         ]
                     }
@@ -260,7 +270,7 @@
             ]
         },
         {
-            "name": "8. POST cursos como estudiante (401)",
+            "name": "8. POST cursos como estudiante (403)",
             "request": {
                 "method": "POST",
                 "header": [
@@ -289,7 +299,7 @@
                     "script": {
                         "type": "text/javascript",
                         "exec": [
-                            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                            "pm.test('Status 403', () => pm.response.to.have.status(403));"
                         ]
                     }
                 }
@@ -438,7 +448,8 @@
                                 "type": "text/javascript",
                                 "exec": [
                                     "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                                    "pm.test('Rol estudiante y sin hash', () => { const j = pm.response.json(); pm.expect(j.usuario.rol).to.eql('estudiante'); pm.expect(j.usuario).to.not.have.property('contrasena_hash'); });"
+                                    "pm.test('Rol estudiante y sin hash', () => { const j = pm.response.json(); pm.expect(j.usuario.rol).to.eql('estudiante'); pm.expect(j.usuario).to.not.have.property('contrasena_hash'); });",
+                                    "if (pm.response.json().token_verificacion) { pm.collectionVariables.set('verifyToken', pm.response.json().token_verificacion); }"
                                 ]
                             }
                         }
@@ -770,6 +781,312 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "12.12 GET admin usuarios sin sesion (401)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "body": null,
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/usuarios",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "usuarios"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "13. CORS",
+            "item": [
+                {
+                    "name": "13.1 Preflight origen permitido (204)",
+                    "request": {
+                        "method": "OPTIONS",
+                        "header": [
+                            {
+                                "key": "Origin",
+                                "value": "{{corsAllowedOrigin}}"
+                            },
+                            {
+                                "key": "Access-Control-Request-Method",
+                                "value": "PATCH"
+                            },
+                            {
+                                "key": "Access-Control-Request-Headers",
+                                "value": "content-type"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                                    "pm.test('Origen permitido', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.eql(pm.variables.get('corsAllowedOrigin')));",
+                                    "pm.test('Credenciales', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Credentials')).to.eql('true'));",
+                                    "pm.test('Metodos', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Methods')).to.include('PATCH'));",
+                                    "pm.test('Headers', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Headers')).to.include('Content-Type'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "13.2 Preflight origen denegado (403)",
+                    "request": {
+                        "method": "OPTIONS",
+                        "header": [
+                            {
+                                "key": "Origin",
+                                "value": "{{corsDeniedOrigin}}"
+                            },
+                            {
+                                "key": "Access-Control-Request-Method",
+                                "value": "PATCH"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                                    "pm.test('Sin Access-Control-Allow-Origin', () => pm.expect(pm.response.headers.has('Access-Control-Allow-Origin')).to.eql(false));",
+                                    "pm.test('Error de origen', () => pm.expect(pm.response.json().error).to.eql('Origen no permitido'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "13.3 Origen permitido conserva respuesta (401)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Origin",
+                                "value": "{{corsAllowedOrigin}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                                    "pm.test('Origen permitido', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.eql(pm.variables.get('corsAllowedOrigin')));",
+                                    "pm.test('Credenciales', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Credentials')).to.eql('true'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "13.4 Origen denegado rechazado (403)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Origin",
+                                "value": "{{corsDeniedOrigin}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "perfil"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                                    "pm.test('Sin Access-Control-Allow-Origin', () => pm.expect(pm.response.headers.has('Access-Control-Allow-Origin')).to.eql(false));",
+                                    "pm.test('Error de origen', () => pm.expect(pm.response.json().error).to.eql('Origen no permitido'));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "14. Verificación de correo (SendGrid)",
+            "item": [
+                {
+                    "name": "14.1 POST verificar-correo token inválido (400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"token\": \"token-invalido\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                    ] } }]
+                },
+                {
+                    "name": "14.2 POST verificar-correo con token de sandbox (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"token\": \"{{verifyToken}}\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Mensaje de verificación', () => pm.expect(pm.response.json().mensaje).to.include('verificado'));"
+                    ] } }]
+                },
+                {
+                    "name": "14.3 POST verificar-correo token ya usado (400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"token\": \"{{verifyToken}}\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                    ] } }]
+                },
+                {
+                    "name": "14.4 POST reenvío sin sesión (401)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo/reenviar",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo", "reenviar"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                    ] } }]
+                },
+                {
+                    "name": "14.5 POST registro sin verificar para reenvío (201)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"nombre\": \"Sin verificar\",\n    \"correo\": \"sinverificar.{{$guid}}@mail.com\",\n    \"contrasena\": \"Segura1!\",\n    \"contrasena_confirmacion\": \"Segura1!\",\n    \"rol\": \"estudiante\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/registro",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["registro"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                        "pm.test('Correo sin verificar', () => pm.expect(pm.response.json().usuario.correo_verificado).to.eql(0));",
+                        "if (pm.response.json().token_verificacion) { pm.collectionVariables.set('verifyToken', pm.response.json().token_verificacion); }"
+                    ] } }]
+                },
+                {
+                    "name": "14.6 POST reenvío con sesión (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo/reenviar",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo", "reenviar"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Correo enviado', () => pm.expect(pm.response.json()).to.have.property('correo_enviado'));",
+                        "if (pm.response.json().token_verificacion) { pm.collectionVariables.set('verifyToken', pm.response.json().token_verificacion); }"
+                    ] } }]
+                },
+                {
+                    "name": "14.7 POST verificar-correo con token reenviado (200)",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"token\": \"{{verifyToken}}\"\n}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/verificar-correo",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["verificar-correo"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ] } }]
                 }
             ]
         }

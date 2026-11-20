@@ -38,12 +38,14 @@ $foto = (string) ($usuario['foto_perfil'] ?? '');
   </div>
 <?php endif; ?>
 
+<div id="profile-alert" aria-live="polite"></div>
+
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card border shadow-sm">
       <div class="card-body p-4">
         <h6 class="fw-bold mb-3">Datos personales</h6>
-        <form method="post" action="<?= htmlspecialchars(Url::to('perfil'), ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data">
+        <form id="formPerfil" method="post" action="<?= htmlspecialchars(Url::to('perfil'), ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data">
           <?= Csrf::field() ?>
           <div class="row g-3">
             <div class="col-12">
@@ -84,7 +86,7 @@ $foto = (string) ($usuario['foto_perfil'] ?? '');
             </div>
 
             <div class="col-12">
-              <button class="btn btn-primary-soscur" type="submit">Guardar cambios</button>
+              <button id="btnGuardarPerfil" class="btn btn-primary-soscur" type="submit">Guardar cambios</button>
             </div>
           </div>
         </form>
@@ -95,17 +97,19 @@ $foto = (string) ($usuario['foto_perfil'] ?? '');
   <div class="col-lg-5">
     <div class="card border shadow-sm mb-4">
       <div class="card-body p-4 text-center">
-        <?php if ($foto !== ''): ?>
-          <img src="<?= htmlspecialchars(Url::asset($foto), ENT_QUOTES, 'UTF-8') ?>"
-               alt="Foto de perfil" class="rounded-circle mb-3" style="width: 110px; height: 110px; object-fit: cover;">
-        <?php else: ?>
-          <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3"
-               style="width: 110px; height: 110px; font-size: 2rem;">
-            <?= htmlspecialchars(mb_strtoupper(mb_substr((string) $usuario['nombre'], 0, 1)), ENT_QUOTES, 'UTF-8') ?>
-          </div>
-        <?php endif; ?>
-        <h6 class="fw-bold mb-1"><?= htmlspecialchars((string) $usuario['nombre'], ENT_QUOTES, 'UTF-8') ?></h6>
-        <p class="text-muted small mb-2"><?= htmlspecialchars((string) $usuario['correo'], ENT_QUOTES, 'UTF-8') ?></p>
+        <div id="perfil-avatar" class="mb-3">
+          <?php if ($foto !== ''): ?>
+            <img id="perfil-avatar-img" src="<?= htmlspecialchars(Url::asset($foto), ENT_QUOTES, 'UTF-8') ?>"
+                 alt="Foto de perfil" class="rounded-circle" style="width: 110px; height: 110px; object-fit: cover;">
+          <?php else: ?>
+            <div id="perfil-avatar-placeholder" class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center"
+                 style="width: 110px; height: 110px; font-size: 2rem;">
+              <?= htmlspecialchars(mb_strtoupper(mb_substr((string) $usuario['nombre'], 0, 1)), ENT_QUOTES, 'UTF-8') ?>
+            </div>
+          <?php endif; ?>
+        </div>
+        <h6 id="perfil-nombre" class="fw-bold mb-1"><?= htmlspecialchars((string) $usuario['nombre'], ENT_QUOTES, 'UTF-8') ?></h6>
+        <p id="perfil-correo" class="text-muted small mb-2"><?= htmlspecialchars((string) $usuario['correo'], ENT_QUOTES, 'UTF-8') ?></p>
         <span class="badge <?= ((int) $usuario['bloqueado'] === 1) ? 'bg-danger' : 'bg-success' ?>">
           <?= ((int) $usuario['bloqueado'] === 1) ? 'Cuenta bloqueada' : 'Cuenta activa' ?>
         </span>
@@ -115,7 +119,8 @@ $foto = (string) ($usuario['foto_perfil'] ?? '');
     <div class="card border shadow-sm">
       <div class="card-body p-4">
         <h6 class="fw-bold mb-3">Cambiar contraseña</h6>
-        <form method="post" action="<?= htmlspecialchars(Url::to('perfil/contrasena'), ENT_QUOTES, 'UTF-8') ?>">
+        <div id="password-alert" aria-live="polite"></div>
+        <form id="formContrasena" method="post" action="<?= htmlspecialchars(Url::to('perfil/contrasena'), ENT_QUOTES, 'UTF-8') ?>">
           <?= Csrf::field() ?>
           <div class="mb-3">
             <label class="form-label" for="contrasena_actual">Contraseña actual</label>
@@ -132,10 +137,13 @@ $foto = (string) ($usuario['foto_perfil'] ?? '');
           <div class="form-text mb-3">
             Mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.
           </div>
-          <button class="btn btn-outline-secondary w-100" type="submit">Actualizar contraseña</button>
+          <button id="btnCambiarContrasena" class="btn btn-outline-secondary w-100" type="submit">Actualizar contraseña</button>
         </form>
       </div>
     </div>
   </div>
 </div>
-<?php require __DIR__ . '/../templates/footer.php'; ?>
+<?php
+$pageScript = 'js/profile.js';
+require __DIR__ . '/../templates/footer.php';
+?>

@@ -24,4 +24,19 @@ final class Url
     {
         return self::to($path);
     }
+
+    public static function absolute(string $path = ''): string
+    {
+        $config = require dirname(__DIR__) . '/config/config.php';
+        $base = trim((string) ($config['app_url'] ?? ''));
+
+        if ($base === '') {
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
+            $host = preg_replace('/[^A-Za-z0-9.\-:]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost')) ?? 'localhost';
+            $base = ($https ? 'https' : 'http') . '://' . $host . self::base();
+        }
+
+        return rtrim($base, '/') . '/' . ltrim($path, '/');
+    }
 }

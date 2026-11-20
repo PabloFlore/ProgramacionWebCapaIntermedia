@@ -25,6 +25,7 @@ $router->get('/home', [HomeController::class, 'index']);
 
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
+$router->get('/verificar-correo', [AuthController::class, 'verificarCorreo']);
 $router->get('/registro', [AuthController::class, 'showRegister']);
 $router->post('/registro', [AuthController::class, 'register']);
 $router->post('/logout', [AuthController::class, 'logout']);
@@ -37,11 +38,14 @@ $router->get('/admin/usuarios', [UserController::class, 'index']);
 $router->post('/admin/usuarios/{id}/bloquear', [UserController::class, 'bloquear']);
 $router->post('/admin/usuarios/{id}/reactivar', [UserController::class, 'reactivar']);
 
+$router->get('/api/v1/categorias', [ApiController::class, 'categorias']);
 $router->get('/api/v1/cursos', [ApiController::class, 'cursos']);
 $router->post('/api/v1/cursos', [ApiController::class, 'crearCurso']);
 
 $router->post('/api/v1/registro', [ApiAuthController::class, 'registro']);
 $router->post('/api/v1/login', [ApiAuthController::class, 'login']);
+$router->post('/api/v1/verificar-correo', [ApiAuthController::class, 'verificarCorreo']);
+$router->post('/api/v1/verificar-correo/reenviar', [ApiAuthController::class, 'reenviarVerificacion']);
 $router->post('/api/v1/logout', [ApiAuthController::class, 'logout']);
 $router->get('/api/v1/perfil', [ApiAuthController::class, 'perfil']);
 $router->patch('/api/v1/perfil', [ApiAuthController::class, 'actualizarPerfil']);

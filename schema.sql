@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     foto_perfil VARCHAR(255) DEFAULT NULL,
     correo_verificado BOOLEAN NOT NULL DEFAULT FALSE,
     token_verificacion VARCHAR(100) DEFAULT NULL,
+    token_verificacion_expira DATETIME DEFAULT NULL,
     intentos_fallidos TINYINT NOT NULL DEFAULT 0,
     bloqueado BOOLEAN NOT NULL DEFAULT FALSE,
     motivo_bloqueo VARCHAR(255) DEFAULT NULL,

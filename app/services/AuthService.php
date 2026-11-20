@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Config\Database;
+use App\Helpers\SendGridHelper;
+use App\Helpers\Url;
 use App\Models\Usuario;
+use DateTimeImmutable;
 use PDOException;
 use Throwable;
 
@@ -102,6 +105,10 @@ final class AuthService
             return ['ok' => false, 'status' => 409, 'message' => 'El correo ya está registrado'];
         }
 
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+        $expira = $this->expiracionToken();
+
         try {
             $id = $modelo->crear([
                 'nombre' => $nombre,
@@ -112,6 +119,8 @@ final class AuthService
                 'fecha_nacimiento' => $fechaNacimiento,
                 'foto_perfil' => $fotoPerfil,
                 'correo_verificado' => 0,
+                'token_verificacion' => $tokenHash,
+                'token_verificacion_expira' => $expira,
             ]);
         } catch (PDOException $exception) {
             if ($this->esCorreoDuplicado($exception)) {
@@ -129,12 +138,25 @@ final class AuthService
             return ['ok' => false, 'status' => 500, 'message' => 'No se pudo recuperar la cuenta creada'];
         }
 
-        return [
+        $enlace = Url::absolute('verificar-correo?token=' . urlencode($token));
+        $correoEnviado = SendGridHelper::enviarVerificacion($correo, $nombre, $enlace);
+        $config = $this->configuracion();
+
+        $respuesta = [
             'ok' => true,
             'status' => 201,
-            'message' => 'Cuenta creada correctamente',
+            'message' => $correoEnviado
+                ? 'Cuenta creada correctamente. Revisa tu correo para verificarla.'
+                : 'Cuenta creada correctamente. No se pudo enviar el correo de verificación.',
             'usuario' => $usuario,
+            'correo_enviado' => $correoEnviado,
         ];
+
+        if ($config['sendgrid']['sandbox']) {
+            $respuesta['token_verificacion'] = $token;
+        }
+
+        return $respuesta;
     }
 
     public function login(string $correo, string $contrasena): array
@@ -273,6 +295,113 @@ final class AuthService
         }
 
         return $errores;
+    }
+
+    public function verificarCorreo(string $token): array
+    {
+        $token = trim($token);
+
+        if ($token === '' || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+            return ['ok' => false, 'status' => 400, 'message' => 'El enlace de verificación no es válido'];
+        }
+
+        $tokenHash = hash('sha256', $token);
+        $modelo = new Usuario();
+        $usuario = $modelo->buscarPorTokenVerificacion($tokenHash);
+
+        if ($usuario === null || !hash_equals((string) $usuario['token_verificacion'], $tokenHash)) {
+            return [
+                'ok' => false,
+                'status' => 400,
+                'message' => 'El enlace de verificación no es válido o ya fue usado',
+            ];
+        }
+
+        if ((int) $usuario['correo_verificado'] === 1) {
+            return ['ok' => true, 'status' => 200, 'message' => 'El correo ya estaba verificado'];
+        }
+
+        $expira = $usuario['token_verificacion_expira'] ?? null;
+
+        if (!is_string($expira) || new DateTimeImmutable($expira) < new DateTimeImmutable('now')) {
+            return [
+                'ok' => false,
+                'status' => 400,
+                'message' => 'El enlace de verificación expiró. Solicita uno nuevo.',
+            ];
+        }
+
+        $modelo->marcarCorreoVerificado((int) $usuario['usuario_id']);
+
+        return ['ok' => true, 'status' => 200, 'message' => 'Correo verificado correctamente'];
+    }
+
+    public function reenviarVerificacion(int $usuarioId): array
+    {
+        $modelo = new Usuario();
+        $usuario = $modelo->buscarVerificacionPorId($usuarioId);
+
+        if ($usuario === null) {
+            return ['ok' => false, 'status' => 404, 'message' => 'Usuario no encontrado'];
+        }
+
+        if ((int) $usuario['correo_verificado'] === 1) {
+            return ['ok' => false, 'status' => 400, 'message' => 'El correo ya está verificado'];
+        }
+
+        $expira = $usuario['token_verificacion_expira'] ?? null;
+        $config = $this->configuracion();
+        $horas = max(1, (int) ($config['verification_hours'] ?? 24));
+        $minutosEspera = $config['sendgrid']['sandbox'] ? 0 : 60;
+        $limite = date('Y-m-d H:i:s', time() + ($horas * 60 - $minutosEspera) * 60);
+
+        if (is_string($expira) && $expira > $limite) {
+            return [
+                'ok' => false,
+                'status' => 429,
+                'message' => 'Espera un momento antes de solicitar otro correo de verificación.',
+            ];
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+        $nuevaExpiracion = $this->expiracionToken();
+        $modelo->actualizarTokenVerificacion($usuarioId, $tokenHash, $nuevaExpiracion);
+
+        $enlace = Url::absolute('verificar-correo?token=' . urlencode($token));
+        $enviado = SendGridHelper::enviarVerificacion(
+            (string) $usuario['correo'],
+            (string) $usuario['nombre'],
+            $enlace
+        );
+
+        return [
+            'ok' => true,
+            'status' => 200,
+            'message' => $enviado
+                ? 'Correo de verificación reenviado.'
+                : 'No se pudo enviar el correo de verificación. Intenta más tarde.',
+            'correo_enviado' => $enviado,
+            'token_verificacion' => $config['sendgrid']['sandbox'] ? $token : null,
+        ];
+    }
+
+    private function expiracionToken(): string
+    {
+        $horas = max(1, (int) ($this->configuracion()['verification_hours'] ?? 24));
+
+        return date('Y-m-d H:i:s', time() + $horas * 3600);
+    }
+
+    private function configuracion(): array
+    {
+        static $config = null;
+
+        if ($config === null) {
+            $config = require dirname(__DIR__) . '/config/config.php';
+        }
+
+        return $config;
     }
 
     private function esCorreoDuplicado(PDOException $exception): bool

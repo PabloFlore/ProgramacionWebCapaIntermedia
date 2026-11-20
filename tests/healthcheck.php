@@ -27,7 +27,7 @@ header('Content-Type: text/html; charset=utf-8');
           <tr><td>Host</td><td><code><?php echo $_SERVER['HTTP_HOST'] ?? 'n/a'; ?></code></td></tr>
           <tr><td>Fecha generada por PHP</td><td><code><?php echo date('Y-m-d H:i:s'); ?></code></td></tr>
         </table>
-        <p class="mb-1">Punto de entrada operativo: <code>/soscur-portal/index.php</code></p>
+        <p class="mb-1">Punto de entrada operativo: <code>/PWCI/public/index.php</code></p>
         <p class="text-muted small">El contenido de esta página fue generado por PHP (no es un archivo estático).</p>
       </div>
     </div>

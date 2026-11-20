@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
+use App\Helpers\Upload;
 use App\Services\AuthService;
 use App\Services\UserService;
 
@@ -22,16 +23,45 @@ class ApiAuthController extends JsonController
 
     public function registro(): void
     {
-        $payload = $this->readJsonBody();
+        $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
+        $esFormulario = str_contains($contentType, 'multipart/form-data')
+            || str_contains($contentType, 'application/x-www-form-urlencoded');
+        $fotoPath = null;
 
-        if ($payload === null) {
-            $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
-            return;
+        if ($esFormulario) {
+            $payload = is_array($_POST) ? $_POST : [];
+
+            if (isset($_FILES['foto_perfil'])
+                && is_array($_FILES['foto_perfil'])
+                && ($_FILES['foto_perfil']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+            ) {
+                $subida = Upload::avatar($_FILES['foto_perfil']);
+
+                if (!$subida['ok']) {
+                    $this->error(400, (string) $subida['error']);
+                    return;
+                }
+
+                $fotoPath = $subida['path'];
+            }
+
+            $payload['foto_perfil'] = $fotoPath;
+        } else {
+            $payload = $this->readJsonBody();
+
+            if ($payload === null) {
+                $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
+                return;
+            }
         }
 
         $resultado = $this->authService->registro($payload);
 
         if (!$resultado['ok']) {
+            if ($fotoPath !== null) {
+                Upload::borrar($fotoPath);
+            }
+
             $extra = isset($resultado['detalles']) ? ['detalles' => $resultado['detalles']] : [];
             $this->error((int) $resultado['status'], (string) $resultado['message'], $extra);
             return;
@@ -40,10 +70,17 @@ class ApiAuthController extends JsonController
         $usuario = $resultado['usuario'];
         Session::login((int) $usuario['usuario_id'], $usuario['rol'], $usuario['nombre']);
 
-        $this->respond([
+        $respuesta = [
             'mensaje' => $resultado['message'],
             'usuario' => $this->usuarioPublico($usuario),
-        ], 201);
+            'correo_enviado' => (bool) ($resultado['correo_enviado'] ?? false),
+        ];
+
+        if (isset($resultado['token_verificacion'])) {
+            $respuesta['token_verificacion'] = $resultado['token_verificacion'];
+        }
+
+        $this->respond($respuesta, 201);
     }
 
     public function login(): void
@@ -73,6 +110,48 @@ class ApiAuthController extends JsonController
         $this->respond([
             'mensaje' => 'Sesión iniciada',
             'usuario' => $this->usuarioPublico($usuario),
+        ], 200);
+    }
+
+    public function verificarCorreo(): void
+    {
+        $payload = $this->readJsonBody();
+
+        if ($payload === null) {
+            $this->error(400, 'El cuerpo debe ser un objeto JSON válido');
+            return;
+        }
+
+        $token = isset($payload['token']) && is_string($payload['token']) ? $payload['token'] : '';
+        $resultado = $this->authService->verificarCorreo($token);
+
+        if (!$resultado['ok']) {
+            $this->error((int) $resultado['status'], (string) $resultado['message']);
+            return;
+        }
+
+        $this->respond(['mensaje' => $resultado['message']], 200);
+    }
+
+    public function reenviarVerificacion(): void
+    {
+        $usuario = $this->requireAuth();
+
+        if ($usuario === null) {
+            return;
+        }
+
+        $resultado = $this->authService->reenviarVerificacion((int) $usuario['usuario_id']);
+
+        if (!$resultado['ok']) {
+            $this->error((int) $resultado['status'], (string) $resultado['message']);
+            return;
+        }
+
+        $this->respond([
+            'mensaje' => $resultado['message'],
+            'correo_enviado' => $resultado['correo_enviado'],
+            'token_verificacion' => $resultado['token_verificacion'],
         ], 200);
     }
 
