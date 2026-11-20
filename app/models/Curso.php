@@ -6,21 +6,47 @@ namespace App\Models;
 
 class Curso extends Model
 {
-    public function listarActivosPorCategoria(int $categoriaId, int $limit = 10, int $offset = 0): array
-    {
-        $sql = 'SELECT curso_id, titulo, descripcion, imagen, precio, tipo_precio, 
-                       instructor_id, categoria_id, estatus, fecha_creacion
-                FROM cursos
-                WHERE estatus = :estatus
-                  AND categoria_id = :categoria_id
-                ORDER BY curso_id DESC
-                LIMIT :limit OFFSET :offset';
+    public function listarActivosPorCategoria(
+        ?int $categoriaId,
+        ?string $buscar = null,
+        int $limit = 10,
+        int $offset = 0
+    ): array {
+        $sql = 'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
+                        c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
+                        (SELECT ROUND(AVG(com.calificacion), 2)
+                         FROM comentarios com
+                         WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS calificacion_promedio,
+                        (SELECT COUNT(*)
+                         FROM comentarios com
+                         WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS total_comentarios
+                 FROM cursos c
+                 LEFT JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                 WHERE c.estatus = :estatus';
+        $params = [':estatus' => ['activo', \PDO::PARAM_STR]];
+
+        if ($categoriaId !== null) {
+            $sql .= ' AND c.categoria_id = :categoria_id';
+            $params[':categoria_id'] = [$categoriaId, \PDO::PARAM_INT];
+        }
+
+        if ($buscar !== null && $buscar !== '') {
+            $sql .= ' AND (c.titulo LIKE :buscar_titulo OR c.descripcion LIKE :buscar_descripcion OR cat.nombre LIKE :buscar_categoria)';
+            $params[':buscar_titulo'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+            $params[':buscar_descripcion'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+            $params[':buscar_categoria'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+        }
+
+        $sql .= ' ORDER BY c.curso_id DESC LIMIT :limit OFFSET :offset';
+        $params[':limit'] = [$limit, \PDO::PARAM_INT];
+        $params[':offset'] = [$offset, \PDO::PARAM_INT];
 
         $statement = $this->db->prepare($sql);
-        $statement->bindValue(':estatus', 'activo', \PDO::PARAM_STR);
-        $statement->bindValue(':categoria_id', $categoriaId, \PDO::PARAM_INT);
-        $statement->bindValue(':limit', $limit, \PDO::PARAM_INT);
-        $statement->bindValue(':offset', $offset, \PDO::PARAM_INT);
+
+        foreach ($params as $marcador => [$valor, $tipo]) {
+            $statement->bindValue($marcador, $valor, $tipo);
+        }
+
         $statement->execute();
 
         return array_map(static function (array $curso): array {
@@ -28,21 +54,41 @@ class Curso extends Model
             $curso['precio'] = (float) $curso['precio'];
             $curso['instructor_id'] = (int) $curso['instructor_id'];
             $curso['categoria_id'] = (int) $curso['categoria_id'];
+            $curso['calificacion_promedio'] = $curso['calificacion_promedio'] === null
+                ? null
+                : (float) $curso['calificacion_promedio'];
+            $curso['total_comentarios'] = (int) $curso['total_comentarios'];
 
             return $curso;
         }, $statement->fetchAll());
     }
 
-    public function contarActivosPorCategoria(int $categoriaId): int
+    public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null): int
     {
         $sql = 'SELECT COUNT(*) AS total
-                FROM cursos
-                WHERE estatus = :estatus
-                  AND categoria_id = :categoria_id';
+                FROM cursos c
+                LEFT JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                WHERE c.estatus = :estatus';
+        $params = [':estatus' => ['activo', \PDO::PARAM_STR]];
+
+        if ($categoriaId !== null) {
+            $sql .= ' AND c.categoria_id = :categoria_id';
+            $params[':categoria_id'] = [$categoriaId, \PDO::PARAM_INT];
+        }
+
+        if ($buscar !== null && $buscar !== '') {
+            $sql .= ' AND (c.titulo LIKE :buscar_titulo OR c.descripcion LIKE :buscar_descripcion OR cat.nombre LIKE :buscar_categoria)';
+            $params[':buscar_titulo'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+            $params[':buscar_descripcion'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+            $params[':buscar_categoria'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+        }
 
         $statement = $this->db->prepare($sql);
-        $statement->bindValue(':estatus', 'activo', \PDO::PARAM_STR);
-        $statement->bindValue(':categoria_id', $categoriaId, \PDO::PARAM_INT);
+
+        foreach ($params as $marcador => [$valor, $tipo]) {
+            $statement->bindValue($marcador, $valor, $tipo);
+        }
+
         $statement->execute();
         $row = $statement->fetch();
 
@@ -73,7 +119,13 @@ class Curso extends Model
         $curso = $this->fetchOne(
             'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
                     c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
-                    cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre
+                    cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre,
+                    (SELECT ROUND(AVG(com.calificacion), 2)
+                     FROM comentarios com
+                     WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS calificacion_promedio,
+                    (SELECT COUNT(*)
+                     FROM comentarios com
+                     WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS total_comentarios
              FROM cursos c
              INNER JOIN categorias cat ON cat.categoria_id = c.categoria_id
              INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
@@ -90,6 +142,10 @@ class Curso extends Model
         $curso['precio'] = (float) $curso['precio'];
         $curso['instructor_id'] = (int) $curso['instructor_id'];
         $curso['categoria_id'] = (int) $curso['categoria_id'];
+        $curso['calificacion_promedio'] = $curso['calificacion_promedio'] === null
+            ? null
+            : (float) $curso['calificacion_promedio'];
+        $curso['total_comentarios'] = (int) $curso['total_comentarios'];
 
         return $curso;
     }

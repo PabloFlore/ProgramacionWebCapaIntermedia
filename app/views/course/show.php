@@ -6,7 +6,9 @@ use App\Helpers\Url;
 $title = (string) $curso['titulo'];
 require __DIR__ . '/../templates/header.php';
 
-$autenticado = Auth::user() !== null;
+$usuarioActual = Auth::user();
+$autenticado = $usuarioActual !== null;
+$esEstudiante = $autenticado && $usuarioActual['rol'] === 'estudiante';
 $cursoJson = json_encode(
     $curso,
     JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
@@ -66,6 +68,47 @@ $cursoJson = json_encode(
                 </div>
               <?php endforeach; ?>
             </div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="card border shadow-sm mt-4" id="comentarios-curso">
+        <div class="card-body p-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 class="h5 fw-bold mb-0">Comentarios y calificación</h2>
+            <span class="badge bg-warning text-dark" id="comentarios-promedio">
+              <?= $curso['calificacion_promedio'] === null
+                  ? 'Sin calificaciones'
+                  : number_format((float) $curso['calificacion_promedio'], 1, '.', ',') . '/10' ?>
+            </span>
+          </div>
+          <p class="small text-muted mt-2 mb-3" id="comentarios-total">
+            <?= (int) $curso['total_comentarios'] ?> comentario(s) publicado(s).
+          </p>
+          <div id="comentarios-alerta" aria-live="polite"></div>
+          <div id="comentarios-lista" class="list-group list-group-flush">
+            <p class="text-muted small mb-0">Cargando comentarios...</p>
+          </div>
+
+          <?php if ($esEstudiante): ?>
+            <form id="form-comentario" class="mt-4 border-top pt-3">
+              <div id="comentario-alerta" aria-live="polite"></div>
+              <label class="form-label small" for="comentario-calificacion">Calificación (1 a 10)</label>
+              <select id="comentario-calificacion" class="form-select form-select-sm mb-3" required>
+                <option value="">Selecciona</option>
+                <?php for ($nota = 1; $nota <= 10; $nota++): ?>
+                  <option value="<?= $nota ?>"><?= $nota ?></option>
+                <?php endfor; ?>
+              </select>
+              <label class="form-label small" for="comentario-texto">Comentario</label>
+              <textarea id="comentario-texto" class="form-control form-control-sm" rows="3" maxlength="1000"></textarea>
+              <button id="btn-publicar-comentario" type="submit" class="btn btn-outline-primary btn-sm mt-3">Publicar comentario</button>
+              <p class="text-muted small mt-2 mb-0">Solo puedes opinar si completaste este curso y una sola vez por curso.</p>
+            </form>
+          <?php elseif (!$autenticado): ?>
+            <p class="small text-muted mt-3 mb-0">
+              <a href="<?= htmlspecialchars(Url::to('login'), ENT_QUOTES, 'UTF-8') ?>">Inicia sesión</a> para dejar tu comentario.
+            </p>
           <?php endif; ?>
         </div>
       </div>
@@ -133,5 +176,5 @@ $cursoJson = json_encode(
   window.SOSCUR_CURSO = <?= $cursoJson ?>;
 </script>
 <?php
-$pageScript = 'js/course.js';
+$pageScripts = ['js/course.js', 'js/comentarios.js'];
 require __DIR__ . '/../templates/footer.php';

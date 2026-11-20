@@ -29,9 +29,12 @@ El avance por fases y las decisiones técnicas se documentan en [`docs/ESTADO_AV
    ```sql
    SOURCE schema.sql;
    SOURCE seed.sql;
+   SOURCE migrations/002_verificacion_correo.sql;
+   SOURCE migrations/003_cursos_pagos_diplomas.sql;
+   SOURCE migrations/004_mensajeria.sql;
    ```
 
-   `seed.sql` carga usuarios, categorías, cursos, niveles, inscripciones, comentarios y un diploma de demostración.
+   `seed.sql` carga usuarios, categorías, cursos, niveles, inscripciones, comentarios y un diploma de demostración. La migración 004 crea la tabla `mensajes`.
 
 2. Configurar la conexión con variables de entorno o con los valores por defecto de `app/config/config.php`:
 
@@ -88,6 +91,9 @@ El avance por fases y las decisiones técnicas se documentan en [`docs/ESTADO_AV
 | POST | `/admin/usuarios/{id}/bloquear` | Bloquear usuario (solo admin) |
 | POST | `/admin/usuarios/{id}/reactivar` | Reactivar usuario (solo admin) |
 | GET | `/reportes` | Reportes con filtros (instructor/admin) |
+| GET/POST | `/admin/categorias` | Alta, edición y baja lógica de categorías (admin) |
+| GET | `/admin/comentarios` | Moderación de comentarios con causa de eliminación (admin) |
+| GET | `/mensajes` | Bandeja de entrada/salida y envío de mensajes (sesión) |
 
 Los formularios web usan token CSRF y las contraseñas se almacenan con `password_hash()`. Las peticiones API mutantes que llegan desde el navegador también exigen `X-CSRF-Token`; las peticiones de Postman/curl sin `Origin` o `Sec-Fetch-Site` siguen funcionando igual.
 
@@ -99,6 +105,13 @@ Base: `/api/v1`
 | --- | --- | --- | --- |
 | GET | `/categorias` | No | Categorías disponibles para el catálogo |
 | GET | `/cursos?categoria_id=1` | No | Cursos activos por categoría, con paginación |
+| GET | `/cursos?categoria_id=todas&q=modelado` | No | Búsqueda ampliada por título, descripción o categoría; `categoria_id=0|todas` incluye todas |
+| GET | `/categorias/gestion` | Admin | Categorías para administración |
+| POST | `/categorias` | Admin | Crear categoría (nombre único) |
+| PATCH | `/categorias/{id}` | Admin | Actualizar categoría |
+| DELETE | `/categorias/{id}` | Admin | Eliminar categoría sin cursos asociados |
+| GET | `/cursos/{id}/comentarios` | No | Comentarios visibles y resumen con promedio 1–10 |
+| POST | `/cursos/{id}/comentarios` | Estudiante | Comentar un curso completado, con calificación 1–10 |
 | POST | `/cursos` | Instructor/admin | Registrar curso |
 | POST | `/registro` | No | Registrar estudiante o instructor y enviar correo de verificación |
 | POST | `/login` | No | Iniciar sesión y crear cookie de sesión |
@@ -111,6 +124,12 @@ Base: `/api/v1`
 | POST | `/perfil/foto` | Sesión | Subir avatar (`multipart/form-data`) |
 | GET | `/admin/usuarios` | Admin | Listar usuarios con filtros `rol` y `bloqueado` |
 | GET | `/reportes?desde=2026-01-01&hasta=2026-12-31&estado_pago=pagado` | Instructor/admin | Reportes con resumen, por rol, por curso y desglose; filtros `desde`, `hasta`, `curso_id`, `categoria_id`, `estado_pago`, `rol`, `bloqueado`, `pagina` y `limit` |
+| GET | `/admin/comentarios?curso_id=1&incluir_eliminados=1` | Admin | Moderación de comentarios; muestra causa y moderador cuando aplica |
+| POST | `/admin/comentarios/{id}/eliminar` | Admin | Eliminación lógica de un comentario con `causa_eliminacion` |
+| GET | `/mensajes?buzon=recibidos` | Sesión | Bandeja de mensajes (`recibidos` o `enviados`) |
+| GET | `/mensajes/destinatarios` | Sesión | Destinatarios permitidos según el rol |
+| POST | `/mensajes` | Sesión | Enviar mensaje interno |
+| PATCH | `/mensajes/{id}/leido` | Sesión | Marcar como leído un mensaje recibido |
 | POST | `/admin/usuarios/{id}/bloquear` | Admin | Bloquear usuario |
 | POST | `/admin/usuarios/{id}/reactivar` | Admin | Reactivar usuario |
 
@@ -127,6 +146,10 @@ El cliente consume la API propia con `async/await` y `fetch`, sin recargar la p�
 | Administración | `public/js/admin-usuarios.js` | Bloquear y reactivar usuarios |
 | Reportes | `public/js/reportes.js` | Validar rango de fechas y limpiar filtros |
 | Dashboard instructor/admin | `public/js/instructor.js` | Crear cursos con `POST /api/v1/cursos` |
+| Administración de categorías | `public/js/admin-categorias.js` | Alta, edición y baja con confirmación |
+| Detalle de curso | `public/js/comentarios.js` | Publicar comentarios, recargar promedio y listar opiniones |
+| Moderación | `public/js/admin-comentarios.js` | Eliminar comentarios indicando causa y confirmación |
+| Mensajería | `public/js/mensajes.js` | Enviar mensajes y marcarlos como leídos |
 
 La capa común está en `public/js/api.js`:
 
@@ -147,7 +170,7 @@ Las rutas sensibles se protegen con `App\Middleware\AccessMiddleware` antes de e
 | Sesión sin rol permitido | `403` con vista de acceso denegado | `403` JSON |
 | Sesión con rol permitido | Ejecuta el controlador | Ejecuta el controlador |
 
-Rutas públicas: `/`, `/home`, `/login`, `/registro`, `GET /api/v1/cursos`, `POST /api/v1/registro` y `POST /api/v1/login`. El resto de las rutas requieren sesión; las rutas de administración requieren rol `admin` y la creación de cursos requiere `instructor` o `admin`.
+Rutas públicas: `/`, `/home`, `/login`, `/registro`, `GET /api/v1/cursos`, `GET /api/v1/cursos/{id}/comentarios`, `POST /api/v1/registro` y `POST /api/v1/login`. El resto de las rutas requieren sesión; las rutas de administración requieren rol `admin` y la creación de cursos requiere `instructor` o `admin`.
 
 Para proteger una ruta nueva, agrégala a `app/config/access.php` con la clave `MÉTODO /ruta`: usa `null` para exigir solo sesión o un arreglo de roles permitidos.
 
@@ -234,11 +257,11 @@ seed.sql                 Datos de demostración
 
 ## Base de datos existente
 
-Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_align_schema_ui.sql`, `migrations/002_verificacion_correo.sql` y `migrations/003_cursos_pagos_diplomas.sql` antes de usar esta versión. Para instalaciones nuevas, usar `schema.sql` y `seed.sql` y aplicar las migraciones 002 y 003 (no la 001, porque duplica `genero`).
+Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_align_schema_ui.sql`, `migrations/002_verificacion_correo.sql`, `migrations/003_cursos_pagos_diplomas.sql` y `migrations/004_mensajeria.sql` antes de usar esta versión. Para instalaciones nuevas, usar `schema.sql`, `seed.sql` y aplicar las migraciones 002, 003 y 004 (no la 001, porque duplica `genero`).
 
 ## Pruebas
 
-La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15) y reportes (carpeta 16). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
+La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15), reportes (carpeta 16) y Fase 3 (carpeta 17: búsqueda, comentarios, promedio, moderación, mensajería y categorías). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
 
 Con `SENDGRID_SANDBOX=true`, la petición de registro devuelve `token_verificacion`; ese valor se usa en la carpeta «14. Verificación de correo» para comprobar `200` y, repetida, `400` por token ya usado. El reenvío sin sesión espera `401`.
 

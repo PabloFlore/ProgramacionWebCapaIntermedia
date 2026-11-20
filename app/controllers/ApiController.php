@@ -40,29 +40,35 @@ class ApiController extends JsonController
 
     public function cursos(): void
     {
-        $categoriaId = $_GET['categoria_id'] ?? null;
+        $categoriaId = $this->parsearCategoria($_GET['categoria_id'] ?? null);
 
-        if (!$this->isPositiveIntString($categoriaId)) {
-            $this->error(400, 'categoria_id es obligatorio y debe ser un entero positivo');
+        if ($categoriaId === false) {
+            $this->error(400, 'categoria_id debe ser un entero positivo, 0 o todas');
             return;
         }
 
-        $categoriaId = (int) $categoriaId;
+        $buscar = isset($_GET['q']) && is_string($_GET['q']) ? trim($_GET['q']) : '';
 
+        if (strlen($buscar) > 100) {
+            $this->error(400, 'q no puede superar 100 caracteres');
+            return;
+        }
+
+        $buscar = $buscar === '' ? null : $buscar;
         $page = $this->isPositiveIntString($_GET['page'] ?? null) ? (int) $_GET['page'] : 1;
         $limit = $this->isPositiveIntString($_GET['limit'] ?? null) ? (int) $_GET['limit'] : 10;
         $limit = min($limit, self::MAX_LIMIT);
         $offset = ($page - 1) * $limit;
 
         $cursoModel = $this->cursos;
-        $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $limit, $offset);
+        $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $buscar, $limit, $offset);
 
         if ($cursos === []) {
-            $this->error(404, 'No se encontraron cursos para esta categoría');
+            $this->error(404, 'No se encontraron cursos con los filtros indicados');
             return;
         }
 
-        $total = $cursoModel->contarActivosPorCategoria($categoriaId);
+        $total = $cursoModel->contarActivosPorCategoria($categoriaId, $buscar);
 
         $this->respond([
             'data' => $cursos,
@@ -70,10 +76,32 @@ class ApiController extends JsonController
                 'page' => $page,
                 'limit' => $limit,
                 'categoria_id' => $categoriaId,
+                'q' => $buscar,
                 'total' => $total,
                 'total_pages' => (int) ceil($total / $limit),
             ],
         ], 200);
+    }
+
+    private function parsearCategoria(mixed $valor): int|null|false
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        if (is_string($valor)) {
+            $normalizado = strtolower(trim($valor));
+
+            if (in_array($normalizado, ['0', 'todas', 'all'], true)) {
+                return null;
+            }
+        }
+
+        if ($this->isPositiveIntString($valor)) {
+            return (int) $valor;
+        }
+
+        return false;
     }
 
     public function crearCurso(): void

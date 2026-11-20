@@ -23,11 +23,13 @@
   const estado = {
     categorias: [],
     categoriaId: null,
+    busqueda: '',
     pagina: 1,
     limite: 6,
     totalPaginas: 1,
     total: 0,
-    controlador: null
+    controlador: null,
+    temporizadorBusqueda: null
   };
 
   const iconosCategoria = [
@@ -108,24 +110,44 @@
 
     if (!categoria) {
       elements.titulo.textContent = 'Cursos disponibles';
-      elements.subtitulo.textContent = 'Selecciona una categoría para ver sus cursos.';
+      elements.subtitulo.textContent = estado.busqueda === ''
+        ? 'Selecciona una categoría o busca por título, descripción o categoría.'
+        : 'Resultados para "' + estado.busqueda + '" en todas las categorías.';
       return;
     }
 
     elements.titulo.textContent = categoria.nombre;
-    elements.subtitulo.textContent = estado.total === 1
-      ? '1 curso disponible en esta categoría.'
-      : estado.total + ' cursos disponibles en esta categoría.';
+    elements.subtitulo.textContent = estado.busqueda === ''
+      ? (estado.total === 1
+        ? '1 curso disponible en esta categoría.'
+        : estado.total + ' cursos disponibles en esta categoría.')
+      : (estado.total === 1
+        ? '1 resultado para "' + estado.busqueda + '".'
+        : estado.total + ' resultados para "' + estado.busqueda + '".');
   }
 
   function pintarCategorias() {
     elements.categorias.innerHTML = '';
 
+    const todas = document.createElement('button');
+    todas.type = 'button';
+    todas.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+    todas.dataset.categoriaId = '';
+
+    if (estado.categoriaId === null) {
+      todas.classList.add('active');
+    }
+
+    const iconoTodas = document.createElement('i');
+    iconoTodas.className = 'bi bi-collection';
+    todas.appendChild(iconoTodas);
+    todas.appendChild(document.createTextNode('Todas las categorías'));
+    todas.addEventListener('click', function () {
+      seleccionarCategoria(null);
+    });
+    elements.categorias.appendChild(todas);
+
     if (estado.categorias.length === 0) {
-      const mensaje = document.createElement('p');
-      mensaje.className = 'text-muted small mb-0';
-      mensaje.textContent = 'No hay categorías registradas.';
-      elements.categorias.appendChild(mensaje);
       return;
     }
 
@@ -153,11 +175,14 @@
   }
 
   function seleccionarCategoria(categoriaId) {
-    if (Number(estado.categoriaId) === Number(categoriaId)) {
+    const destino = categoriaId === null ? null : Number(categoriaId);
+
+    if (estado.categoriaId === destino) {
       return;
     }
 
-    estado.categoriaId = Number(categoriaId);
+    estado.categoriaId = destino;
+    estado.busqueda = '';
     estado.pagina = 1;
 
     if (elements.busqueda) {
@@ -165,7 +190,8 @@
     }
 
     Array.from(elements.categorias.querySelectorAll('[data-categoria-id]')).forEach(function (boton) {
-      boton.classList.toggle('active', Number(boton.dataset.categoriaId) === estado.categoriaId);
+      const valor = boton.dataset.categoriaId === '' ? null : Number(boton.dataset.categoriaId);
+      boton.classList.toggle('active', valor === destino);
     });
 
     cargarCursos();
@@ -199,6 +225,15 @@
     categoriaBadge.className = 'badge bg-light text-dark mb-2 align-self-start';
     categoriaBadge.textContent = nombreCategoria;
 
+    const calificacion = document.createElement('div');
+    calificacion.className = 'small text-muted mb-2';
+    if (curso.calificacion_promedio !== null && curso.calificacion_promedio !== undefined) {
+      calificacion.textContent = 'Calificación ' + Number(curso.calificacion_promedio).toFixed(1).replace('.', ',')
+        + '/10 (' + Number(curso.total_comentarios || 0) + ')';
+    } else {
+      calificacion.textContent = 'Sin calificaciones';
+    }
+
     const titulo = document.createElement('h6');
     titulo.className = 'fw-bold';
     titulo.textContent = String(curso.titulo || 'Curso sin título');
@@ -230,6 +265,7 @@
     enlace.setAttribute('aria-label', 'Ver detalles de ' + String(curso.titulo || 'curso'));
 
     cuerpo.appendChild(categoriaBadge);
+    cuerpo.appendChild(calificacion);
     cuerpo.appendChild(titulo);
     cuerpo.appendChild(descripcion);
     cuerpo.appendChild(pie);
@@ -308,10 +344,6 @@
   }
 
   async function cargarCursos() {
-    if (!estado.categoriaId) {
-      return;
-    }
-
     if (estado.controlador) {
       estado.controlador.abort();
     }
@@ -326,10 +358,14 @@
     mostrarCargando(true);
 
     const parametros = new URLSearchParams({
-      categoria_id: String(estado.categoriaId),
+      categoria_id: estado.categoriaId === null ? 'todas' : String(estado.categoriaId),
       page: String(estado.pagina),
       limit: String(estado.limite)
     });
+
+    if (estado.busqueda !== '') {
+      parametros.set('q', estado.busqueda);
+    }
 
     try {
       const respuesta = await api.request('/cursos?' + parametros.toString(), {
@@ -406,7 +442,7 @@
         return;
       }
 
-      estado.categoriaId = Number(estado.categorias[0].categoria_id);
+      estado.categoriaId = null;
       pintarCategorias();
       await cargarCursos();
     } catch (error) {
@@ -418,7 +454,18 @@
   }
 
   if (elements.busqueda) {
-    elements.busqueda.addEventListener('input', aplicarBusqueda);
+    elements.busqueda.addEventListener('input', function () {
+      estado.busqueda = elements.busqueda.value.trim();
+      estado.pagina = 1;
+
+      if (estado.temporizadorBusqueda) {
+        clearTimeout(estado.temporizadorBusqueda);
+      }
+
+      estado.temporizadorBusqueda = setTimeout(function () {
+        cargarCursos();
+      }, 250);
+    });
   }
 
   iniciarCatalogo();

@@ -12,15 +12,15 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 
 | Rúbrica | Puntaje | Situación actual |
 | --- | --- | --- |
-| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance, baja lógica y reportes; falta moderación. |
-| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15 y 16). |
+| Portal en operación | 16 | Casi completo: catálogo, detalle, niveles, inscripción, avance, baja lógica, reportes, categorías, comentarios y mensajería; queda logout vía `fetch` en Fase 4. |
+| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15, 16 y 17). |
 | Reportes con filtros | 10 | Implementados: reporte general admin y de ventas por instructor, con filtros y formatos. |
 | Inyección de dependencias | 10 | Ampliada: contenedor, servicios inyectados y modelos con PDO; queda limpiar `Controller::model()` en Fase 4. |
-| Módulo de administrador | 8 | Parcial: bloqueo/reactivación y gestión de cursos; categorías y moderación pendientes. |
-| Interacción y búsqueda | 8 | Parcial: filtro por categoría, búsqueda local y detalle de curso; faltan comentarios, promedio y mensajería. |
+| Módulo de administrador | 8 | Implementado: bloqueo/reactivación, gestión de cursos, categorías y moderación de comentarios. |
+| Interacción y búsqueda | 8 | Implementada: búsqueda global por título/descripción/categoría, comentarios con promedio y mensajería interna. |
 | Pagos y certificado | 8 | Implementados: compra simulada, confirmación, avance por nivel, diploma automático y verificación por código. |
 | Seguridad | 8 | Base sólida: CSRF condicional en API, control de acceso y validación de entrada; pendiente logout vía `fetch`. |
-| Mensajes y avisos | 6 | Flash/éxito/error completos; falta confirmación antes de eliminar. |
+| Mensajes y avisos | 6 | Completos: flash/éxito/error, avisos con `SoscurApi` y confirmación antes de eliminar. |
 
 ## Decisiones técnicas acordadas
 
@@ -39,10 +39,22 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 | 0 | Contenedor DI, interfaces, PDO inyectado, `Request`, CSRF API, confirmaciones y este documento | Completada |
 | 1 | Cursos/niveles completos, inscripción, pagos simulados y diploma automático | Completada |
 | 2 | Reportes con filtros y formatos | Completada |
-| 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Pendiente |
+| 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Completada |
 | 4 | Canje de token, tabla admin y logout vía `fetch` | Pendiente |
 
 ## Registro de avances
+
+### Fase 3 — Categorías, comentarios, mensajería y búsqueda
+
+- CRUD de categorías para admin: `GET /admin/categorias`, `GET /api/v1/categorias/gestion`, `POST /api/v1/categorias`, `PATCH /api/v1/categorias/{id}` y `DELETE /api/v1/categorias/{id}`, con nombre único, `creado_por` y bloqueo de baja cuando existen cursos asociados.
+- Comentarios completos: `GET/POST /api/v1/cursos/{id}/comentarios`, calificación entera de 1 a 10, un comentario por curso y solo para estudiantes con inscripción completada; `Curso` devuelve `calificacion_promedio` y `total_comentarios` en catálogo y detalle.
+- Moderación: `GET /api/v1/admin/comentarios`, `POST /api/v1/admin/comentarios/{id}/eliminar` y vista `admin/comentarios` con filtros, causa obligatoria y leyenda «Eliminado por administración» cuando `eliminado_por_admin = TRUE`.
+- Mensajería interna: `migrations/004_mensajeria.sql`, modelo `Mensaje`, `MensajeService`, endpoints `/api/v1/mensajes` y vista `mensajes/index` con bandejas recibidos/enviados, destinatarios según rol y marcar como leído.
+- Búsqueda ampliada: `GET /api/v1/cursos?categoria_id=todas&q=...` busca por título, descripción y categoría; el catálogo incluye «Todas las categorías» y búsqueda `q` con debounce.
+- Nuevos scripts `admin-categorias.js`, `comentarios.js`, `admin-comentarios.js` y `mensajes.js`, todos usando `SoscurApi.request()` y confirmaciones antes de acciones destructivas.
+- Colección Postman ampliada con la carpeta 17 (34 peticiones) y variables `comentarioId`, `mensajeId` y `categoriaGestionId`.
+- `README.md` y este documento actualizados con rutas web/API, JS, permisos y migraciones de Fase 3.
+- Verificación: 85 archivos PHP con `php -l`, 16 scripts con `node --check`, JSON de Postman válido (17 carpetas; 34 peticiones en la Fase 3), `git diff --check` sin errores, migraciones 002/003/004 aplicadas en BD temporal y smoke HTTP 43/43: `BUSQUEDA_GLOBAL`, `BUSQUEDA_TODAS_CATEGORIAS`, `CATEGORIA_INVALIDA`, `COMENTARIOS_CURSO_1`, `PROMEDIO_SEED`, `LOGIN_ESTUDIANTE`, `COMENTARIO_CALIFICACION_INVALIDA`, `COMENTARIO_SIN_COMPLETAR`, `COMENTARIO_DUPLICADO`, `MODERACION_ESTUDIANTE_403`, `LOGIN_INSTRUCTOR`, `MODERACION_INSTRUCTOR_403`, `LOGIN_ADMIN`, `MODERACION_ADMIN`, `MODERACION_LEYENDA`, `ELIMINAR_COMENTARIO`, `PROMEDIO_RECALCULADO`, `ADMIN_COMMENTS_WEB`, `WEB_LEYENDA_MODERACION`, CRUD de categorías con `409` por duplicado/cursos asociados, `MENSAJES_SIN_SESION`, `DESTINATARIOS_ROLES`, `CREAR_MENSAJE`, `MENSAJE_A_ESTUDIANTE_403`, bandejas API/web, `MARCAR_LEIDO` y las vistas web en `200`. Log PHP sin errores.
 
 ### Fase 2 — Reportes con filtros y formatos
 
@@ -81,7 +93,7 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
-Base de datos: importar `schema.sql` y `seed.sql`. Para Fase 1 aplicar además `migrations/002_verificacion_correo.sql` y `migrations/003_cursos_pagos_diplomas.sql`. Si la BD ya existía de antes de la Fase 0, aplicar primero `migrations/001_align_schema_ui.sql` (no en BD frescas: duplica `genero`).
+Base de datos: importar `schema.sql`, `seed.sql`, `migrations/002_verificacion_correo.sql`, `migrations/003_cursos_pagos_diplomas.sql` y `migrations/004_mensajeria.sql`. Si la BD ya existía de antes de la Fase 0, aplicar primero `migrations/001_align_schema_ui.sql` (no en BD frescas: duplica `genero`).
 
 Variables de entorno principales (plantilla en `.env.example`): `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, `APP_URL`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_SANDBOX`. La app usa `getenv()`: no carga `.env` automáticamente.
 
