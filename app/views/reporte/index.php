@@ -1,20 +1,13 @@
 <?php
 
 use App\Helpers\Url;
+use App\Helpers\Fecha;
 
 $title = 'Reportes';
 $pageScripts = ['js/reportes.js'];
 require __DIR__ . '/../templates/header.php';
 
-$fechaLegible = static function (mixed $valor): string {
-    if (!is_string($valor) || $valor === '') {
-        return '—';
-    }
-
-    $marca = strtotime($valor);
-
-    return $marca === false ? '—' : date('d/m/Y', $marca);
-};
+$fechaLegible = static fn (mixed $valor): string => Fecha::formato($valor);
 
 $dinero = static function (mixed $valor): string {
     return '$' . number_format((float) $valor, 2, '.', ',');

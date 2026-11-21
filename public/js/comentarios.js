@@ -19,9 +19,15 @@
       return '—';
     }
 
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const partes = String(valor).slice(0, 10).split('-');
 
-    return partes.length === 3 ? partes[2] + '/' + partes[1] + '/' + partes[0] : '—';
+    if (partes.length !== 3) {
+      return '—';
+    }
+
+    const mes = meses[parseInt(partes[1], 10) - 1] || partes[1];
+    return partes[2] + '/' + mes + '/' + partes[0];
   }
 
   function promedioLegible(valor) {
@@ -73,8 +79,13 @@
       cabecera.appendChild(nota);
 
       const texto = document.createElement('p');
-      texto.className = 'small text-muted mt-2 mb-1';
-      texto.textContent = comentario.comentario ? String(comentario.comentario) : 'Sin texto adicional.';
+      if (comentario.eliminado_por_admin) {
+        texto.className = 'small fst-italic text-muted mt-2 mb-1';
+        texto.innerHTML = '<i class="bi bi-slash-circle"></i> Este comentario fue eliminado por un administrador.';
+      } else {
+        texto.className = 'small text-muted mt-2 mb-1';
+        texto.textContent = comentario.comentario ? String(comentario.comentario) : 'Sin texto adicional.';
+      }
 
       const fecha = document.createElement('div');
       fecha.className = 'text-muted small';

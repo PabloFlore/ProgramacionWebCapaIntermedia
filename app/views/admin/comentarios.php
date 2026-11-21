@@ -1,20 +1,13 @@
 <?php
 
+use App\Helpers\Fecha;
 use App\Helpers\Url;
 
 $title = 'Moderación de comentarios';
 $pageScripts = ['js/admin-comentarios.js'];
 require __DIR__ . '/../templates/header.php';
 
-$fechaLegible = static function (mixed $valor): string {
-    if (!is_string($valor) || $valor === '') {
-        return '—';
-    }
-
-    $marca = strtotime($valor);
-
-    return $marca === false ? '—' : date('d/m/Y', $marca);
-};
+$fechaLegible = static fn (mixed $valor): string => Fecha::formato($valor);
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <div>

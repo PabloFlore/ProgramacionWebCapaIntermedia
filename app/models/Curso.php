@@ -12,10 +12,11 @@ class Curso extends Model implements CursoRepositoryInterface
         ?int $categoriaId,
         ?string $buscar = null,
         int $limit = 10,
-        int $offset = 0
+        int $offset = 0,
+        array $filtros = []
     ): array {
         $sql = 'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
-                        c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
+                        c.instructor_id, u.nombre AS instructor_nombre, c.categoria_id, c.estatus, c.fecha_creacion,
                         (SELECT ROUND(AVG(com.calificacion), 2)
                          FROM comentarios com
                          WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS calificacion_promedio,
@@ -24,6 +25,7 @@ class Curso extends Model implements CursoRepositoryInterface
                          WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS total_comentarios
                  FROM cursos c
                  LEFT JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                 INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
                  WHERE c.estatus = :estatus';
         $params = [':estatus' => ['activo', \PDO::PARAM_STR]];
 
@@ -37,6 +39,21 @@ class Curso extends Model implements CursoRepositoryInterface
             $params[':buscar_titulo'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
             $params[':buscar_descripcion'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
             $params[':buscar_categoria'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['instructor'])) {
+            $sql .= ' AND u.nombre LIKE :instructor';
+            $params[':instructor'] = ['%' . $filtros['instructor'] . '%', \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['desde'])) {
+            $sql .= ' AND DATE(c.fecha_creacion) >= :desde';
+            $params[':desde'] = [$filtros['desde'], \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['hasta'])) {
+            $sql .= ' AND DATE(c.fecha_creacion) <= :hasta';
+            $params[':hasta'] = [$filtros['hasta'], \PDO::PARAM_STR];
         }
 
         $sql .= ' ORDER BY c.curso_id DESC LIMIT :limit OFFSET :offset';
@@ -82,11 +99,12 @@ class Curso extends Model implements CursoRepositoryInterface
         }, $rows);
     }
 
-    public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null): int
+    public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null, array $filtros = []): int
     {
         $sql = 'SELECT COUNT(*) AS total
                 FROM cursos c
                 LEFT JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
                 WHERE c.estatus = :estatus';
         $params = [':estatus' => ['activo', \PDO::PARAM_STR]];
 
@@ -100,6 +118,21 @@ class Curso extends Model implements CursoRepositoryInterface
             $params[':buscar_titulo'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
             $params[':buscar_descripcion'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
             $params[':buscar_categoria'] = ['%' . $buscar . '%', \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['instructor'])) {
+            $sql .= ' AND u.nombre LIKE :instructor';
+            $params[':instructor'] = ['%' . $filtros['instructor'] . '%', \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['desde'])) {
+            $sql .= ' AND DATE(c.fecha_creacion) >= :desde';
+            $params[':desde'] = [$filtros['desde'], \PDO::PARAM_STR];
+        }
+
+        if (!empty($filtros['hasta'])) {
+            $sql .= ' AND DATE(c.fecha_creacion) <= :hasta';
+            $params[':hasta'] = [$filtros['hasta'], \PDO::PARAM_STR];
         }
 
         $statement = $this->db->prepare($sql);

@@ -9,13 +9,15 @@ use App\Models\Contracts\ComentarioRepositoryInterface;
 class Comentario extends Model implements ComentarioRepositoryInterface
 {
     public function listarPorCurso(int $cursoId): array
-    {
-        $filas = $this->fetchAll(
-            'SELECT com.comentario_id, com.calificacion, com.comentario, com.fecha_comentario,
+        {
+            $filas = $this->fetchAll(
+                'SELECT com.comentario_id, com.calificacion,
+                    CASE WHEN com.eliminado_por_admin = 1 THEN NULL ELSE com.comentario END AS comentario,
+                    com.eliminado_por_admin, com.fecha_comentario,
                     u.nombre AS estudiante_nombre
              FROM comentarios com
              INNER JOIN usuarios u ON u.usuario_id = com.estudiante_id
-             WHERE com.curso_id = :curso_id AND com.eliminado_por_admin = 0
+             WHERE com.curso_id = :curso_id
              ORDER BY com.fecha_comentario DESC, com.comentario_id DESC',
             ['curso_id' => $cursoId]
         );
@@ -23,6 +25,7 @@ class Comentario extends Model implements ComentarioRepositoryInterface
         return array_map(static function (array $fila): array {
             $fila['comentario_id'] = (int) $fila['comentario_id'];
             $fila['calificacion'] = (int) $fila['calificacion'];
+            $fila['eliminado_por_admin'] = (bool) $fila['eliminado_por_admin'];
 
             return $fila;
         }, $filas);

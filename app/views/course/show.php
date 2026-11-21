@@ -2,6 +2,7 @@
 
 use App\Helpers\Auth;
 use App\Helpers\Url;
+use App\Helpers\Fecha;
 
 $title = (string) $curso['titulo'];
 require __DIR__ . '/../templates/header.php';
@@ -35,7 +36,7 @@ $cursoJson = json_encode(
           <h1 class="h3 fw-bold"><?= htmlspecialchars($curso['titulo'], ENT_QUOTES, 'UTF-8') ?></h1>
           <p class="text-muted"><?= nl2br(htmlspecialchars((string) ($curso['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8')) ?></p>
           <p class="small mb-1"><i class="bi bi-person-badge"></i> Instructor: <?= htmlspecialchars($curso['instructor_nombre'], ENT_QUOTES, 'UTF-8') ?></p>
-          <p class="small mb-0"><i class="bi bi-calendar3"></i> Alta: <?= htmlspecialchars(date('d/m/Y', strtotime((string) $curso['fecha_creacion'])), ENT_QUOTES, 'UTF-8') ?></p>
+          <p class="small mb-0"><i class="bi bi-calendar3"></i> Alta: <?= htmlspecialchars(Fecha::formato($curso['fecha_creacion']), ENT_QUOTES, 'UTF-8') ?></p>        
         </div>
       </div>
 
@@ -89,9 +90,6 @@ $cursoJson = json_encode(
           </div>
           <p class="small text-muted mt-2 mb-3" id="comentarios-total">
             <?= (int) $curso['total_comentarios'] ?> comentario(s) publicado(s).
-          </p>
-          <p class="small text-muted mb-3">
-            <i class="bi bi-info-circle"></i> Los comentarios retirados por moderación no se muestran.
           </p>
           <div id="comentarios-alerta" aria-live="polite"></div>
           <div id="comentarios-lista" class="list-group list-group-flush">

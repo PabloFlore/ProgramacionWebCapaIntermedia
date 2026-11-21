@@ -14,9 +14,9 @@ final class KardexService implements KardexServiceInterface
     ) {
     }
 
-    public function obtener(int $estudianteId): array
+    public function obtener(int $estudianteId, array $filtros = []): array
     {
-        $inscripciones = $this->inscripciones->listarKardex($estudianteId);
+        $inscripciones = $this->inscripciones->listarKardex($estudianteId, $filtros);
 
         $completados = 0;
         $pagadas = 0;

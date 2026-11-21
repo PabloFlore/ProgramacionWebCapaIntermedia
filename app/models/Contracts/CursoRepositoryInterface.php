@@ -6,11 +6,11 @@ namespace App\Models\Contracts;
 
 interface CursoRepositoryInterface
 {
-    public function listarActivosPorCategoria(?int $categoriaId, ?string $buscar = null, int $limite = 10, int $desplazamiento = 0): array;
+    public function listarActivosPorCategoria(?int $categoriaId, ?string $buscar = null, int $limite = 10, int $desplazamiento = 0, array $filtros = []): array;
 
     public function listarActivos(): array;
 
-    public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null): int;
+    public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null, array $filtros = []): int;
 
     public function crear(array $datos): int;
 

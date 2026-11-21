@@ -1,19 +1,12 @@
 <?php
 
 use App\Helpers\Url;
+use App\Helpers\Fecha;
 
 $title = 'Kardex';
 require __DIR__ . '/../templates/header.php';
 
-$fechaLegible = static function (mixed $valor): string {
-    if (!is_string($valor) || $valor === '') {
-        return '—';
-    }
-
-    $marca = strtotime($valor);
-
-    return $marca === false ? '—' : date('d/m/Y', $marca);
-};
+$fechaLegible = static fn (mixed $valor): string => Fecha::formato($valor);
 ?>
 <?php if (!empty($flash)): ?>
   <div class="alert alert-<?= $flash['tipo'] === 'success' ? 'success' : 'danger' ?>">
@@ -28,6 +21,49 @@ $fechaLegible = static function (mixed $valor): string {
   </div>
   <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars(Url::to('mis-cursos'), ENT_QUOTES, 'UTF-8') ?>">Mis cursos</a>
 </div>
+
+<form method="get" action="<?= htmlspecialchars(Url::to('kardex'), ENT_QUOTES, 'UTF-8') ?>" class="card border shadow-sm mb-4">
+  <div class="card-body p-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label small" for="desde">Desde</label>
+        <input id="desde" name="desde" type="date" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['desde'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="hasta">Hasta</label>
+        <input id="hasta" name="hasta" type="date" class="form-control form-control-sm" value="<?= htmlspecialchars($filtros['hasta'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small" for="categoria_id">Categoría</label>
+        <select id="categoria_id" name="categoria_id" class="form-select form-select-sm">
+          <option value="">Todas</option>
+          <?php foreach ($categorias as $cat): ?>
+            <option value="<?= (int) $cat['categoria_id'] ?>" <?= ($filtros['categoria_id'] ?? '') === (string) $cat['categoria_id'] ? 'selected' : '' ?>>
+              <?= htmlspecialchars((string) $cat['nombre'], ENT_QUOTES, 'UTF-8') ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="terminados">Avance</label>
+        <select id="terminados" name="terminados" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="1" <?= ($filtros['terminados'] ?? '') === '1' ? 'selected' : '' ?>>Solo terminados</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="activos">Estatus curso</label>
+        <select id="activos" name="activos" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="1" <?= ($filtros['activos'] ?? '') === '1' ? 'selected' : '' ?>>Solo activos</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button class="btn btn-primary-soscur btn-sm w-100" type="submit">Filtrar</button>
+      </div>
+    </div>
+  </div>
+</form>
 
 <div class="row g-3 mb-4">
   <?php foreach ([

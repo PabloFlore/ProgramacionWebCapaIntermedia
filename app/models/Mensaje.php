@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Contracts\MensajeRepositoryInterface;
 use PDO;
 
-class Mensaje extends Model
+class Mensaje extends Model implements MensajeRepositoryInterface
 {
     private const COLUMNAS = 'm.mensaje_id, m.remitente_id, m.destinatario_id, m.curso_id,
         m.asunto, m.cuerpo, m.leido, m.fecha_creacion, m.fecha_leido,

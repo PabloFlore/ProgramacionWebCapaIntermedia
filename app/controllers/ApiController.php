@@ -59,16 +59,21 @@ class ApiController extends JsonController
         $limit = $this->isPositiveIntString($_GET['limit'] ?? null) ? (int) $_GET['limit'] : 10;
         $limit = min($limit, self::MAX_LIMIT);
         $offset = ($page - 1) * $limit;
+        $filtros = [
+            'instructor' => isset($_GET['instructor']) && is_string($_GET['instructor']) ? trim($_GET['instructor']) : '',
+            'desde' => isset($_GET['desde']) && is_string($_GET['desde']) ? trim($_GET['desde']) : '',
+            'hasta' => isset($_GET['hasta']) && is_string($_GET['hasta']) ? trim($_GET['hasta']) : '',
+        ];
 
         $cursoModel = $this->cursos;
-        $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $buscar, $limit, $offset);
+        $cursos = $cursoModel->listarActivosPorCategoria($categoriaId, $buscar, $limit, $offset, $filtros);
 
         if ($cursos === []) {
             $this->error(404, 'No se encontraron cursos con los filtros indicados');
             return;
         }
 
-        $total = $cursoModel->contarActivosPorCategoria($categoriaId, $buscar);
+        $total = $cursoModel->contarActivosPorCategoria($categoriaId, $buscar, $filtros);
 
         $this->respond([
             'data' => $cursos,

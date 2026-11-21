@@ -14,6 +14,10 @@
     titulo: document.getElementById('catalogo-titulo'),
     subtitulo: document.getElementById('catalogo-subtitulo'),
     busqueda: document.getElementById('searchCurso'),
+    instructor: document.getElementById('filtroInstructor'),
+    desde: document.getElementById('filtroDesde'),
+    hasta: document.getElementById('filtroHasta'),
+    limpiar: document.getElementById('btnLimpiarFiltros'),
     cargando: document.getElementById('catalogo-cargando'),
     vacio: document.getElementById('catalogo-vacio'),
     grid: document.getElementById('cursos-grid'),
@@ -22,14 +26,13 @@
 
   const estado = {
     categorias: [],
-    categoriaId: null,
-    busqueda: '',
+    categoriaId: 0, // 0 = Todas las categorías
     pagina: 1,
     limite: 6,
     totalPaginas: 1,
     total: 0,
     controlador: null,
-    temporizadorBusqueda: null
+    temporizador: null
   };
 
   const iconosCategoria = [
@@ -86,7 +89,27 @@
     }).format(numero);
   }
 
+  function formatoFecha(valor) {
+    if (!valor) {
+      return '';
+    }
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const partes = String(valor).slice(0, 10).split('-');
+
+    if (partes.length !== 3) {
+      return '';
+    }
+
+    const mes = meses[parseInt(partes[1], 10) - 1] || partes[1];
+    return partes[2] + '/' + mes + '/' + partes[0];
+  }
+
   function categoriaPorId(categoriaId) {
+    if (!categoriaId || Number(categoriaId) === 0) {
+      return null;
+    }
+
     return estado.categorias.find(function (categoria) {
       return Number(categoria.categoria_id) === Number(categoriaId);
     }) || null;
@@ -107,91 +130,58 @@
 
   function actualizarTitulo() {
     const categoria = categoriaPorId(estado.categoriaId);
+    const nombreTitulo = categoria ? categoria.nombre : 'Todos los cursos';
 
-    if (!categoria) {
-      elements.titulo.textContent = 'Cursos disponibles';
-      elements.subtitulo.textContent = estado.busqueda === ''
-        ? 'Selecciona una categoría o busca por título, descripción o categoría.'
-        : 'Resultados para "' + estado.busqueda + '" en todas las categorías.';
-      return;
+    elements.titulo.textContent = nombreTitulo;
+    elements.subtitulo.textContent = estado.total === 1
+      ? '1 curso disponible.'
+      : estado.total + ' cursos disponibles.';
+  }
+
+  function crearBotonCategoria(id, nombre, iconoClase) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+    boton.dataset.categoriaId = String(id);
+
+    if (Number(id) === Number(estado.categoriaId)) {
+      boton.classList.add('active');
     }
 
-    elements.titulo.textContent = categoria.nombre;
-    elements.subtitulo.textContent = estado.busqueda === ''
-      ? (estado.total === 1
-        ? '1 curso disponible en esta categoría.'
-        : estado.total + ' cursos disponibles en esta categoría.')
-      : (estado.total === 1
-        ? '1 resultado para "' + estado.busqueda + '".'
-        : estado.total + ' resultados para "' + estado.busqueda + '".');
+    const icono = document.createElement('i');
+    icono.className = 'bi ' + iconoClase;
+    boton.appendChild(icono);
+    boton.appendChild(document.createTextNode(nombre));
+
+    boton.addEventListener('click', function () {
+      seleccionarCategoria(Number(id));
+    });
+
+    return boton;
   }
 
   function pintarCategorias() {
     elements.categorias.innerHTML = '';
 
-    const todas = document.createElement('button');
-    todas.type = 'button';
-    todas.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
-    todas.dataset.categoriaId = '';
-
-    if (estado.categoriaId === null) {
-      todas.classList.add('active');
-    }
-
-    const iconoTodas = document.createElement('i');
-    iconoTodas.className = 'bi bi-collection';
-    todas.appendChild(iconoTodas);
-    todas.appendChild(document.createTextNode('Todas las categorías'));
-    todas.addEventListener('click', function () {
-      seleccionarCategoria(null);
-    });
-    elements.categorias.appendChild(todas);
-
-    if (estado.categorias.length === 0) {
-      return;
-    }
+    elements.categorias.appendChild(crearBotonCategoria(0, 'Todas las categorías', 'bi-grid'));
 
     estado.categorias.forEach(function (categoria) {
-      const boton = document.createElement('button');
-      boton.type = 'button';
-      boton.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
-      boton.dataset.categoriaId = String(categoria.categoria_id);
-
-      if (Number(categoria.categoria_id) === Number(estado.categoriaId)) {
-        boton.classList.add('active');
-      }
-
-      const icono = document.createElement('i');
-      icono.className = 'bi ' + iconoCategoria(categoria.nombre);
-      boton.appendChild(icono);
-      boton.appendChild(document.createTextNode(categoria.nombre));
-
-      boton.addEventListener('click', function () {
-        seleccionarCategoria(Number(categoria.categoria_id));
-      });
-
-      elements.categorias.appendChild(boton);
+      elements.categorias.appendChild(
+        crearBotonCategoria(categoria.categoria_id, categoria.nombre, iconoCategoria(categoria.nombre))
+      );
     });
   }
 
   function seleccionarCategoria(categoriaId) {
-    const destino = categoriaId === null ? null : Number(categoriaId);
-
-    if (estado.categoriaId === destino) {
+    if (Number(estado.categoriaId) === Number(categoriaId)) {
       return;
     }
 
-    estado.categoriaId = destino;
-    estado.busqueda = '';
+    estado.categoriaId = Number(categoriaId);
     estado.pagina = 1;
 
-    if (elements.busqueda) {
-      elements.busqueda.value = '';
-    }
-
     Array.from(elements.categorias.querySelectorAll('[data-categoria-id]')).forEach(function (boton) {
-      const valor = boton.dataset.categoriaId === '' ? null : Number(boton.dataset.categoriaId);
-      boton.classList.toggle('active', valor === destino);
+      boton.classList.toggle('active', Number(boton.dataset.categoriaId) === estado.categoriaId);
     });
 
     cargarCursos();
@@ -207,12 +197,6 @@
 
     const tarjeta = document.createElement('div');
     tarjeta.className = 'card h-100 border js-course-card';
-    tarjeta.dataset.search = normalizar([
-      curso.titulo,
-      curso.descripcion,
-      nombreCategoria,
-      curso.tipo_precio
-    ].join(' '));
 
     const portada = document.createElement('div');
     portada.className = 'course-cover cover-' + (((idCategoria - 1) % 6) + 1);
@@ -221,22 +205,34 @@
     const cuerpo = document.createElement('div');
     cuerpo.className = 'card-body d-flex flex-column';
 
+    const filaSuperior = document.createElement('div');
+    filaSuperior.className = 'd-flex justify-content-between align-items-center mb-2';
+
     const categoriaBadge = document.createElement('span');
-    categoriaBadge.className = 'badge bg-light text-dark mb-2 align-self-start';
+    categoriaBadge.className = 'badge bg-light text-dark';
     categoriaBadge.textContent = nombreCategoria;
 
-    const calificacion = document.createElement('div');
-    calificacion.className = 'small text-muted mb-2';
+    const calificacionBadge = document.createElement('span');
+    calificacionBadge.className = 'small rating fw-semibold';
     if (curso.calificacion_promedio !== null && curso.calificacion_promedio !== undefined) {
-      calificacion.textContent = 'Calificación ' + Number(curso.calificacion_promedio).toFixed(1).replace('.', ',')
-        + '/10 (' + Number(curso.total_comentarios || 0) + ')';
+      calificacionBadge.innerHTML = '<i class="bi bi-star-fill"></i> ' + Number(curso.calificacion_promedio).toFixed(1) + '/10';
     } else {
-      calificacion.textContent = 'Sin calificaciones';
+      calificacionBadge.className = 'small text-muted';
+      calificacionBadge.textContent = 'Sin calificaciones';
     }
+
+    filaSuperior.appendChild(categoriaBadge);
+    filaSuperior.appendChild(calificacionBadge);
 
     const titulo = document.createElement('h6');
     titulo.className = 'fw-bold';
     titulo.textContent = String(curso.titulo || 'Curso sin título');
+
+    const meta = document.createElement('p');
+    meta.className = 'text-muted small mb-2';
+    const fechaTxt = formatoFecha(curso.fecha_creacion);
+    const instructorTxt = curso.instructor_nombre ? 'Por ' + curso.instructor_nombre : '';
+    meta.textContent = [instructorTxt, fechaTxt].filter(Boolean).join(' · ');
 
     const descripcion = document.createElement('p');
     descripcion.className = 'text-muted small course-description';
@@ -258,18 +254,19 @@
     pie.appendChild(precio);
     pie.appendChild(tipo);
 
-    const enlace = document.createElement('a');
-    enlace.className = 'btn btn-outline-primary btn-sm mt-3';
-    enlace.href = api.asset('curso/' + Number(curso.curso_id));
-    enlace.textContent = 'Ver curso';
-    enlace.setAttribute('aria-label', 'Ver detalles de ' + String(curso.titulo || 'curso'));
+    const botonDetalle = document.createElement('a');
+    botonDetalle.className = 'btn btn-outline-primary btn-sm w-100 mt-3';
+    botonDetalle.href = api.asset('curso/' + encodeURIComponent(curso.curso_id));
+    botonDetalle.textContent = 'Ver detalle del curso';
 
-    cuerpo.appendChild(categoriaBadge);
-    cuerpo.appendChild(calificacion);
+    cuerpo.appendChild(filaSuperior);
     cuerpo.appendChild(titulo);
+    if (meta.textContent !== '') {
+      cuerpo.appendChild(meta);
+    }
     cuerpo.appendChild(descripcion);
     cuerpo.appendChild(pie);
-    cuerpo.appendChild(enlace);
+    cuerpo.appendChild(botonDetalle);
 
     tarjeta.appendChild(portada);
     tarjeta.appendChild(cuerpo);
@@ -283,7 +280,7 @@
     ocultarVacio();
 
     if (!Array.isArray(cursos) || cursos.length === 0) {
-      mostrarVacio('No hay cursos disponibles en esta categoría por el momento.');
+      mostrarVacio('No se encontraron cursos con los filtros seleccionados.');
       elements.paginacion.innerHTML = '';
       return;
     }
@@ -292,7 +289,6 @@
       elements.grid.appendChild(crearTarjeta(curso));
     });
 
-    aplicarBusqueda();
     pintarPaginacion(paginacion);
   }
 
@@ -358,13 +354,27 @@
     mostrarCargando(true);
 
     const parametros = new URLSearchParams({
-      categoria_id: estado.categoriaId === null ? 'todas' : String(estado.categoriaId),
+      categoria_id: String(estado.categoriaId),
       page: String(estado.pagina),
       limit: String(estado.limite)
     });
 
-    if (estado.busqueda !== '') {
-      parametros.set('q', estado.busqueda);
+    const q = elements.busqueda ? elements.busqueda.value.trim() : '';
+    const instructor = elements.instructor ? elements.instructor.value.trim() : '';
+    const desde = elements.desde ? elements.desde.value : '';
+    const hasta = elements.hasta ? elements.hasta.value : '';
+
+    if (q !== '') {
+      parametros.set('q', q);
+    }
+    if (instructor !== '') {
+      parametros.set('instructor', instructor);
+    }
+    if (desde !== '') {
+      parametros.set('desde', desde);
+    }
+    if (hasta !== '') {
+      parametros.set('hasta', hasta);
     }
 
     try {
@@ -400,29 +410,12 @@
     }
   }
 
-  function aplicarBusqueda() {
-    if (!elements.busqueda) {
-      return;
-    }
-
-    const termino = normalizar(elements.busqueda.value.trim());
-    const tarjetas = Array.from(elements.grid.querySelectorAll('.js-course-card'));
-    let visibles = 0;
-
-    tarjetas.forEach(function (tarjeta) {
-      const coincide = termino === '' || tarjeta.dataset.search.includes(termino);
-      tarjeta.parentElement.classList.toggle('d-none', !coincide);
-
-      if (coincide) {
-        visibles += 1;
-      }
-    });
-
-    if (tarjetas.length > 0 && visibles === 0) {
-      mostrarVacio('No hay cursos que coincidan con tu búsqueda.');
-    } else if (tarjetas.length > 0) {
-      ocultarVacio();
-    }
+  function programarBusqueda() {
+    window.clearTimeout(estado.temporizador);
+    estado.temporizador = window.setTimeout(function () {
+      estado.pagina = 1;
+      cargarCursos();
+    }, 300);
   }
 
   async function iniciarCatalogo() {
@@ -434,15 +427,6 @@
     try {
       const respuesta = await api.request('/categorias');
       estado.categorias = respuesta && Array.isArray(respuesta.data) ? respuesta.data : [];
-
-      if (estado.categorias.length === 0) {
-        elements.categorias.innerHTML = '<p class="text-muted small mb-0">No hay categorías registradas.</p>';
-        mostrarVacio('Todavía no hay categorías disponibles.');
-        mostrarCargando(false);
-        return;
-      }
-
-      estado.categoriaId = null;
       pintarCategorias();
       await cargarCursos();
     } catch (error) {
@@ -454,17 +438,31 @@
   }
 
   if (elements.busqueda) {
-    elements.busqueda.addEventListener('input', function () {
-      estado.busqueda = elements.busqueda.value.trim();
+    elements.busqueda.addEventListener('input', programarBusqueda);
+  }
+  if (elements.instructor) {
+    elements.instructor.addEventListener('input', programarBusqueda);
+  }
+  if (elements.desde) {
+    elements.desde.addEventListener('change', function () {
       estado.pagina = 1;
-
-      if (estado.temporizadorBusqueda) {
-        clearTimeout(estado.temporizadorBusqueda);
-      }
-
-      estado.temporizadorBusqueda = setTimeout(function () {
-        cargarCursos();
-      }, 250);
+      cargarCursos();
+    });
+  }
+  if (elements.hasta) {
+    elements.hasta.addEventListener('change', function () {
+      estado.pagina = 1;
+      cargarCursos();
+    });
+  }
+  if (elements.limpiar) {
+    elements.limpiar.addEventListener('click', function () {
+      if (elements.busqueda) elements.busqueda.value = '';
+      if (elements.instructor) elements.instructor.value = '';
+      if (elements.desde) elements.desde.value = '';
+      if (elements.hasta) elements.hasta.value = '';
+      estado.pagina = 1;
+      cargarCursos();
     });
   }
 

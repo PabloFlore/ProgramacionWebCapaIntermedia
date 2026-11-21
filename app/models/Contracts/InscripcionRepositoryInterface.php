@@ -12,7 +12,7 @@ interface InscripcionRepositoryInterface
 
     public function listarPorEstudiante(int $estudianteId): array;
 
-    public function listarKardex(int $estudianteId): array;
+public function listarKardex(int $estudianteId, array $filtros = []): array;
 
     public function crear(array $datos): int;
 

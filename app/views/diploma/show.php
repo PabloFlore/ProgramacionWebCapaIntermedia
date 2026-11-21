@@ -1,13 +1,12 @@
 <?php
 
+use App\Helpers\Fecha;
 use App\Helpers\Url;
 
 $title = 'Certificado';
 require __DIR__ . '/../templates/header.php';
 
-$fechaEmision = !empty($diploma['fecha_emision'])
-    ? date('d/m/Y', strtotime((string) $diploma['fecha_emision']))
-    : date('d/m/Y');
+$fechaEmision = Fecha::formato($diploma['fecha_emision'] ?? date('Y-m-d'));
 ?>
 <?php if (!empty($flash)): ?>
   <div class="alert alert-<?= $flash['tipo'] === 'success' ? 'success' : 'danger' ?>">

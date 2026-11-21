@@ -20,9 +20,8 @@ final class ApiKardexController extends JsonController
         if ($usuario === null) {
             return;
         }
-
         $this->respond([
-            'data' => $this->kardex->obtener((int) ($usuario['usuario_id'] ?? 0)),
+            'data' => $this->kardex->obtener((int) ($usuario['usuario_id'] ?? 0), $_GET),
         ]);
     }
 }

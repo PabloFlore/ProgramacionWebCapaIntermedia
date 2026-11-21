@@ -38,14 +38,36 @@ require __DIR__ . '/../templates/header.php';
   <section class="col-lg-9">
     <div id="catalogo-alerta" aria-live="polite"></div>
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
       <div>
         <h4 id="catalogo-titulo" class="section-title mb-0">Cursos disponibles</h4>
-        <p id="catalogo-subtitulo" class="text-muted small mb-0">Selecciona una categoría para ver sus cursos.</p>
+        <p id="catalogo-subtitulo" class="text-muted small mb-0">Explora y filtra los cursos activos del portal.</p>
       </div>
       <div class="input-group" style="max-width: 320px;">
         <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input id="searchCurso" class="form-control" type="search" placeholder="Buscar en los resultados..." autocomplete="off">
+        <input id="searchCurso" class="form-control" type="search" placeholder="Buscar por título o palabra..." autocomplete="off">
+      </div>
+    </div>
+
+    <div class="card border shadow-sm mb-4">
+      <div class="card-body p-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small mb-1" for="filtroInstructor">Instructor</label>
+            <input id="filtroInstructor" class="form-control form-control-sm" type="search" placeholder="Nombre del instructor..." autocomplete="off">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small mb-1" for="filtroDesde">Publicado desde</label>
+            <input id="filtroDesde" class="form-control form-control-sm" type="date">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small mb-1" for="filtroHasta">Publicado hasta</label>
+            <input id="filtroHasta" class="form-control form-control-sm" type="date">
+          </div>
+          <div class="col-md-2">
+            <button id="btnLimpiarFiltros" class="btn btn-outline-secondary btn-sm w-100" type="button">Limpiar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -55,7 +77,7 @@ require __DIR__ . '/../templates/header.php';
     </div>
 
     <div id="catalogo-vacio" class="alert alert-info d-none" role="status">
-      Selecciona una categoría para consultar sus cursos.
+      No se encontraron cursos con los filtros seleccionados.
     </div>
 
     <div id="cursos-grid" class="row g-4"></div>

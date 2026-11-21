@@ -6,5 +6,5 @@ namespace App\Services\Contracts;
 
 interface KardexServiceInterface
 {
-    public function obtener(int $estudianteId): array;
+    public function obtener(int $estudianteId, array $filtros = []): array;
 }
