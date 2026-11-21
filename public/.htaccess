@@ -1,19 +1,6 @@
-Options -Indexes
-
-DirectoryIndex index.php
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
-
-    # Archivos y carpetas reales como: css, js, img se sirven directo
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-
-    # El resto va al front controller pero quedandose la query string
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [QSA,L]
 </IfModule>
-
-<FilesMatch "\.(bak|orig|save)$">
-    Require all denied
-</FilesMatch>

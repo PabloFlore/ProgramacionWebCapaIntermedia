@@ -82,6 +82,19 @@ body {
   color: var(--primary);
 }
 
+.category-sidebar .list-group-item.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.course-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .course-cover {
   height: 140px;
   border-radius: .5rem .5rem 0 0;

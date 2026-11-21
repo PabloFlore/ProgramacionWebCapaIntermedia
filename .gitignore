@@ -3,3 +3,15 @@
 .idea/
 Thumbs.db
 Desktop.ini
+
+.postman/
+postman/
+docs/postman/SOSCUR API v1/
+
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+
+.env
+node_modules/
+playwright-report/
+test-results/

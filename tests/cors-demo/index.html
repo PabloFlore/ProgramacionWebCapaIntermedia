@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo CORS - SOSCUR API</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #222; }
+    button { padding: .5rem 1rem; margin-right: .5rem; cursor: pointer; }
+    pre { background: #f4f4f4; padding: 1rem; border-radius: 6px; white-space: pre-wrap; word-break: break-word; }
+    .ok { color: #137333; font-weight: 600; }
+    .error { color: #b3261e; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Demo CORS - SOSCUR API</h1>
+  <p>Origen de esta página: <strong id="origen"></strong></p>
+  <p>API: <code id="api-base"></code></p>
+
+  <p>
+    <button id="btn-get" type="button">GET categorias (origen simple)</button>
+    <button id="btn-post" type="button">POST cursos (preflight OPTIONS)</button>
+  </p>
+
+  <p id="estado"></p>
+  <pre id="resultado">Sin peticiones todavía.</pre>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:8000/api/v1';
+
+    const estado = document.getElementById('estado');
+    const resultado = document.getElementById('resultado');
+
+    document.getElementById('origen').textContent = window.location.origin;
+    document.getElementById('api-base').textContent = API_BASE;
+
+    function mostrar(titulo, cuerpo, ok) {
+      estado.className = ok ? 'ok' : 'error';
+      estado.textContent = titulo;
+      resultado.textContent = cuerpo;
+    }
+
+    async function pedirCategorias() {
+      try {
+        const respuesta = await fetch(API_BASE + '/categorias', {
+          headers: { Accept: 'application/json' }
+        });
+        const texto = await respuesta.text();
+        mostrar(
+          'GET categorias: HTTP ' + respuesta.status + ' (lectura permitida)',
+          'Cabecera Access-Control-Allow-Origin: ' + respuesta.headers.get('Access-Control-Allow-Origin') + '\n\n' + texto,
+          respuesta.ok
+        );
+      } catch (error) {
+        mostrar(
+          'GET bloqueado por el navegador',
+          'Error de red o CORS: ' + error.message + '\n\nLa API no devolvio Access-Control-Allow-Origin para este origen.',
+          false
+        );
+      }
+    }
+
+    async function pedirCursos() {
+      try {
+        const respuesta = await fetch(API_BASE + '/cursos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ titulo: 'Prueba CORS', categoria_id: 1 })
+        });
+        const texto = await respuesta.text();
+        mostrar(
+          'POST cursos: HTTP ' + respuesta.status + ' (preflight aprobado; 401 es esperado sin sesion)',
+          'Cabecera Access-Control-Allow-Origin: ' + respuesta.headers.get('Access-Control-Allow-Origin') + '\n\n' + texto,
+          respuesta.status !== 0
+        );
+      } catch (error) {
+        mostrar(
+          'POST bloqueado por el navegador',
+          'Error de red o CORS: ' + error.message,
+          false
+        );
+      }
+    }
+
+    document.getElementById('btn-get').addEventListener('click', pedirCategorias);
+    document.getElementById('btn-post').addEventListener('click', pedirCursos);
+  </script>
+</body>
+</html>
