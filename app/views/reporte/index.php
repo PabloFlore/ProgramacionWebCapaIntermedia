@@ -1,7 +1,7 @@
 <?php
 
-use App\Helpers\Url;
 use App\Helpers\Fecha;
+use App\Helpers\Url;
 
 $title = 'Reportes';
 $pageScripts = ['js/reportes.js'];
@@ -98,9 +98,9 @@ $roles = ['estudiante', 'instructor', 'admin'];
       </div>
       <?php if ($usuario['rol'] === 'admin'): ?>
         <div class="col-md-3">
-          <label class="form-label small" for="rol">Rol</label>
+          <label class="form-label small" for="rol">Rol (Reporte usuarios)</label>
           <select id="rol" name="rol" class="form-select form-select-sm">
-            <option value="">Todos</option>
+            <option value="">Estudiante (por defecto)</option>
             <?php foreach ($roles as $rol): ?>
               <option value="<?= $rol ?>" <?= $filtros['rol'] === $rol ? 'selected' : '' ?>>
                 <?= htmlspecialchars(ucfirst($rol), ENT_QUOTES, 'UTF-8') ?>
@@ -175,118 +175,206 @@ $roles = ['estudiante', 'instructor', 'admin'];
     </li>
   </ul>
   <div class="tab-content">
-  <div class="tab-pane fade <?= $tabActiva === 'ventas' ? 'show active' : '' ?>" id="tab-ventas" role="tabpanel" aria-labelledby="tab-ventas-btn">
-  <div class="row g-4 mb-4">
-    <div class="col-lg-4">
-      <div class="card border shadow-sm h-100">
+    <div class="tab-pane fade <?= $tabActiva === 'ventas' ? 'show active' : '' ?>" id="tab-ventas" role="tabpanel" aria-labelledby="tab-ventas-btn">
+      <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+          <div class="card border shadow-sm h-100">
+            <div class="card-body p-4">
+              <h2 class="h6 fw-bold">Usuarios por rol</h2>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light"><tr><th>Rol</th><th>Activos</th><th>Bloqueados</th><th>Total</th></tr></thead>
+                  <tbody>
+                    <?php if ($reporte['por_rol'] === []): ?>
+                      <tr><td colspan="4" class="text-center text-muted py-3">Sin datos.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($reporte['por_rol'] as $fila): ?>
+                      <tr>
+                        <td class="text-uppercase small"><?= htmlspecialchars((string) $fila['rol'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= (int) $fila['activos'] ?></td>
+                        <td><?= (int) $fila['bloqueados'] ?></td>
+                        <td class="fw-semibold"><?= (int) $fila['total'] ?></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="card border shadow-sm h-100">
+            <div class="card-body p-4">
+              <h2 class="h6 fw-bold">Ventas por curso</h2>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Curso</th>
+                      <th>Categoría</th>
+                      <th>Inscritos</th>
+                      <th>Nivel prom.</th>
+                      <th class="text-end">Ingresos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if ($reporte['por_curso'] === []): ?>
+                      <tr><td colspan="5" class="text-center text-muted py-3">Sin datos.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($reporte['por_curso'] as $fila): ?>
+                      <tr>
+                        <td><?= htmlspecialchars((string) $fila['titulo'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td class="small text-muted"><?= htmlspecialchars((string) $fila['categoria_nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= (int) $fila['inscripciones'] ?></td>
+                        <td><?= number_format((float) ($fila['nivel_promedio'] ?? 0), 1) ?></td>
+                        <td class="text-end fw-semibold"><?= htmlspecialchars($dinero($fila['monto']), ENT_QUOTES, 'UTF-8') ?></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="h6 fw-bold mt-4">Desglose de ingresos por forma de pago</h3>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Forma de pago</th>
+                      <th>Operaciones</th>
+                      <th class="text-end">Total recaudado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if (empty($reporte['por_metodo_pago'])): ?>
+                      <tr><td colspan="3" class="text-center text-muted py-2">Sin ingresos registrados.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($reporte['por_metodo_pago'] as $mp): ?>
+                      <tr>
+                        <td><?= htmlspecialchars((string) $mp['metodo_pago'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= (int) $mp['operaciones'] ?></td>
+                        <td class="text-end fw-semibold"><?= htmlspecialchars($dinero($mp['total']), ENT_QUOTES, 'UTF-8') ?></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade <?= $tabActiva === 'alumnos' ? 'show active' : '' ?>" id="tab-alumnos" role="tabpanel" aria-labelledby="tab-alumnos-btn">
+      <div class="card border shadow-sm">
         <div class="card-body p-4">
-          <h2 class="h6 fw-bold">Usuarios por rol</h2>
+          <h2 class="h6 fw-bold">Desglose por alumno</h2>
           <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead class="table-light"><tr><th>Rol</th><th>Activos</th><th>Bloqueados</th><th>Total</th></tr></thead>
+            <table class="table table-hover table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>Alumno</th><th>Curso</th><th>Fecha</th><th class="text-end">Monto</th><th>Pago</th></tr>
+              </thead>
               <tbody>
-                <?php if ($reporte['por_rol'] === []): ?>
-                  <tr><td colspan="4" class="text-center text-muted py-3">Sin datos.</td></tr>
+                <?php if ($reporte['detalle'] === []): ?>
+                  <tr><td colspan="5" class="text-center text-muted py-4">No hay inscripciones para este filtro.</td></tr>
                 <?php endif; ?>
-                <?php foreach ($reporte['por_rol'] as $fila): ?>
+                <?php foreach ($reporte['detalle'] as $fila): ?>
+                  <?php
+                  $clasePago = match ($fila['estado_pago']) {
+                      'pagado' => 'bg-success',
+                      'pendiente' => 'bg-warning text-dark',
+                      default => 'bg-secondary',
+                  };
+                  ?>
                   <tr>
-                    <td class="text-uppercase small"><?= htmlspecialchars((string) $fila['rol'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= (int) $fila['activos'] ?></td>
-                    <td><?= (int) $fila['bloqueados'] ?></td>
-                    <td class="fw-semibold"><?= (int) $fila['total'] ?></td>
+                    <td>
+                      <div class="fw-semibold small"><?= htmlspecialchars((string) $fila['estudiante'], ENT_QUOTES, 'UTF-8') ?></div>
+                      <div class="text-muted small"><?= htmlspecialchars((string) $fila['estudiante_correo'], ENT_QUOTES, 'UTF-8') ?></div>
+                    </td>
+                    <td class="small"><?= htmlspecialchars((string) $fila['curso'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td class="small text-muted"><?= htmlspecialchars($fechaLegible($fila['fecha']), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td class="text-end small fw-semibold"><?= htmlspecialchars($dinero($fila['monto_pagado']), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td>
+                      <span class="badge <?= $clasePago ?>"><?= htmlspecialchars(ucfirst((string) $fila['estado_pago']), ENT_QUOTES, 'UTF-8') ?></span>
+                      <div class="text-muted small"><?= htmlspecialchars((string) $fila['metodo_pago'], ENT_QUOTES, 'UTF-8') ?></div>
+                    </td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-8">
-      <div class="card border shadow-sm h-100">
-        <div class="card-body p-4">
-          <h2 class="h6 fw-bold">Ventas por curso</h2>
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead class="table-light"><tr><th>Curso</th><th>Categoría</th><th>Ventas</th><th class="text-end">Monto</th></tr></thead>
-              <tbody>
-                <?php if ($reporte['por_curso'] === []): ?>
-                  <tr><td colspan="4" class="text-center text-muted py-3">Sin datos.</td></tr>
-                <?php endif; ?>
-                <?php foreach ($reporte['por_curso'] as $fila): ?>
-                  <tr>
-                    <td><?= htmlspecialchars((string) $fila['titulo'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td class="small text-muted"><?= htmlspecialchars((string) $fila['categoria_nombre'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= (int) $fila['ventas'] ?></td>
-                    <td class="text-end fw-semibold"><?= htmlspecialchars($dinero($fila['monto']), ENT_QUOTES, 'UTF-8') ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
+
+          <?php $paginacion = $reporte['paginacion']; ?>
+          <?php if ($paginacion['total_paginas'] > 1): ?>
+            <nav class="mt-3" aria-label="Paginación de reportes">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item <?= $paginacion['pagina'] <= 1 ? 'disabled' : '' ?>">
+                  <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => max(1, $paginacion['pagina'] - 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Anterior</a>
+                </li>
+                <li class="page-item disabled"><span class="page-link"><?= (int) $paginacion['pagina'] ?> / <?= (int) $paginacion['total_paginas'] ?></span></li>
+                <li class="page-item <?= $paginacion['pagina'] >= $paginacion['total_paginas'] ? 'disabled' : '' ?>">
+                  <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => min($paginacion['total_paginas'], $paginacion['pagina'] + 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Siguiente</a>
+                </li>
+              </ul>
+            </nav>
+          <?php endif; ?>
         </div>
       </div>
     </div>
   </div>
-  </div>
 
-  <div class="tab-pane fade <?= $tabActiva === 'alumnos' ? 'show active' : '' ?>" id="tab-alumnos" role="tabpanel" aria-labelledby="tab-alumnos-btn">
-  <div class="card border shadow-sm">
-    <div class="card-body p-4">
-      <h2 class="h6 fw-bold">Desglose por alumno</h2>
-      <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
-          <thead class="table-light">
-            <tr><th>Alumno</th><th>Curso</th><th>Fecha</th><th class="text-end">Monto</th><th>Pago</th></tr>
-          </thead>
-          <tbody>
-            <?php if ($reporte['detalle'] === []): ?>
-              <tr><td colspan="5" class="text-center text-muted py-4">No hay inscripciones para este filtro.</td></tr>
-            <?php endif; ?>
-            <?php foreach ($reporte['detalle'] as $fila): ?>
-              <?php
-              $clasePago = match ($fila['estado_pago']) {
-                  'pagado' => 'bg-success',
-                  'pendiente' => 'bg-warning text-dark',
-                  default => 'bg-secondary',
-              };
-              ?>
-              <tr>
-                <td>
-                  <div class="fw-semibold small"><?= htmlspecialchars((string) $fila['estudiante'], ENT_QUOTES, 'UTF-8') ?></div>
-                  <div class="text-muted small"><?= htmlspecialchars((string) $fila['estudiante_correo'], ENT_QUOTES, 'UTF-8') ?></div>
-                </td>
-                <td class="small"><?= htmlspecialchars((string) $fila['curso'], ENT_QUOTES, 'UTF-8') ?></td>
-                <td class="small text-muted"><?= htmlspecialchars($fechaLegible($fila['fecha']), ENT_QUOTES, 'UTF-8') ?></td>
-                <td class="text-end small fw-semibold"><?= htmlspecialchars($dinero($fila['monto_pagado']), ENT_QUOTES, 'UTF-8') ?></td>
-                <td>
-                  <span class="badge <?= $clasePago ?>"><?= htmlspecialchars(ucfirst((string) $fila['estado_pago']), ENT_QUOTES, 'UTF-8') ?></span>
-                  <div class="text-muted small"><?= htmlspecialchars((string) $fila['metodo_pago'], ENT_QUOTES, 'UTF-8') ?></div>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+  <?php if ($usuario['rol'] === 'admin'): ?>
+    <?php $tipoUsuario = $filtros['rol'] === 'instructor' ? 'instructor' : 'estudiante'; ?>
+    <div class="card border shadow-sm mt-4">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+          <h2 class="h6 fw-bold mb-0">Reporte de usuarios activos (<?= $tipoUsuario === 'instructor' ? 'Instructores' : 'Estudiantes' ?>)</h2>
+          <span class="small text-muted">Usa el filtro "Rol" arriba para alternar entre Instructor y Estudiante</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light">
+              <?php if ($tipoUsuario === 'instructor'): ?>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Nombre</th>
+                  <th>Fecha ingreso</th>
+                  <th>Cursos ofrecidos</th>
+                  <th class="text-end">Total de ganancias</th>
+                </tr>
+              <?php else: ?>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Nombre</th>
+                  <th>Fecha ingreso</th>
+                  <th>Cursos inscritos</th>
+                  <th class="text-end">% Cursos terminados</th>
+                </tr>
+              <?php endif; ?>
+            </thead>
+            <tbody>
+              <?php if (empty($reporte['usuarios_detallado'])): ?>
+                <tr><td colspan="5" class="text-center text-muted py-3">No hay usuarios activos para este rol.</td></tr>
+              <?php endif; ?>
+              <?php foreach ($reporte['usuarios_detallado'] as $u): ?>
+                <tr>
+                  <td class="small"><?= htmlspecialchars((string) $u['usuario'], ENT_QUOTES, 'UTF-8') ?></td>
+                  <td class="fw-semibold small"><?= htmlspecialchars((string) $u['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                  <td class="small text-muted"><?= htmlspecialchars($fechaLegible($u['fecha_registro']), ENT_QUOTES, 'UTF-8') ?></td>
+                  <?php if ($tipoUsuario === 'instructor'): ?>
+                    <td><?= (int) $u['cursos_ofrecidos'] ?></td>
+                    <td class="text-end fw-semibold"><?= htmlspecialchars($dinero($u['total_ganancias']), ENT_QUOTES, 'UTF-8') ?></td>
+                  <?php else: ?>
+                    <td><?= (int) $u['cursos_inscritos'] ?></td>
+                    <td class="text-end fw-semibold"><?= number_format((float) $u['porcentaje_terminados'], 1) ?>%</td>
+                  <?php endif; ?>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <?php $paginacion = $reporte['paginacion']; ?>
-      <?php if ($paginacion['total_paginas'] > 1): ?>
-        <nav class="mt-3" aria-label="Paginación de reportes">
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item <?= $paginacion['pagina'] <= 1 ? 'disabled' : '' ?>">
-              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => max(1, $paginacion['pagina'] - 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Anterior</a>
-            </li>
-            <li class="page-item disabled"><span class="page-link"><?= (int) $paginacion['pagina'] ?> / <?= (int) $paginacion['total_paginas'] ?></span></li>
-            <li class="page-item <?= $paginacion['pagina'] >= $paginacion['total_paginas'] ? 'disabled' : '' ?>">
-              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => min($paginacion['total_paginas'], $paginacion['pagina'] + 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Siguiente</a>
-            </li>
-          </ul>
-        </nav>
-      <?php endif; ?>
     </div>
-  </div>
-  </div>
-  </div>
+  <?php endif; ?>
 <?php else: ?>
   <div class="alert alert-info">Corrige los filtros para ver el reporte.</div>
 <?php endif; ?>

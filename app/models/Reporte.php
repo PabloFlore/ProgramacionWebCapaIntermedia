@@ -81,6 +81,9 @@ class Reporte extends Model implements ReporteRepositoryInterface
             'SELECT c.curso_id, c.titulo, cat.nombre AS categoria_nombre,
                     COUNT(*) AS inscripciones,
                     SUM(CASE WHEN i.estado_pago = "pagado" THEN 1 ELSE 0 END) AS ventas,
+                    COALESCE(ROUND(AVG(
+                        (SELECT COUNT(*) FROM progreso_niveles pn WHERE pn.inscripcion_id = i.inscripcion_id AND pn.completado = 1)
+                    ), 1), 0) AS nivel_promedio,
                     COALESCE(SUM(CASE WHEN i.estado_pago = "pagado" THEN i.monto_pagado ELSE 0 END), 0) AS monto' . $this->fromVentas() . $where . '
              GROUP BY c.curso_id, c.titulo, cat.nombre
              ORDER BY monto DESC, c.titulo ASC',
@@ -91,6 +94,7 @@ class Reporte extends Model implements ReporteRepositoryInterface
             $fila['curso_id'] = (int) $fila['curso_id'];
             $fila['inscripciones'] = (int) $fila['inscripciones'];
             $fila['ventas'] = (int) $fila['ventas'];
+            $fila['nivel_promedio'] = (float) $fila['nivel_promedio'];
             $fila['monto'] = (float) $fila['monto'];
 
             return $fila;
@@ -133,6 +137,70 @@ class Reporte extends Model implements ReporteRepositoryInterface
             $fila['monto_pagado'] = (float) $fila['monto_pagado'];
 
             return $fila;
+        }, $filas);
+    }
+
+    public function ingresosPorMetodoPago(array $filtros, ?int $instructorId): array
+    {
+        [$where, $params] = $this->whereVentas($filtros, $instructorId);
+        $filas = $this->fetchAll(
+            'SELECT COALESCE(mp.nombre, "Sin método asignado") AS metodo_pago,
+                    COUNT(*) AS operaciones,
+                    COALESCE(SUM(CASE WHEN i.estado_pago = "pagado" THEN i.monto_pagado ELSE 0 END), 0) AS total'
+            . $this->fromVentas() . $where . '
+             AND i.estado_pago = "pagado"
+             GROUP BY mp.metodo_pago_id, mp.nombre
+             ORDER BY total DESC',
+            $params
+        );
+
+        return array_map(static function (array $fila): array {
+            $fila['operaciones'] = (int) $fila['operaciones'];
+            $fila['total'] = (float) $fila['total'];
+
+            return $fila;
+        }, $filas);
+    }
+
+    public function reporteUsuariosDetallado(string $tipoRol): array
+    {
+        if ($tipoRol === 'instructor') {
+            $filas = $this->fetchAll(
+                'SELECT u.usuario_id, u.correo AS usuario, u.nombre, u.fecha_registro,
+                        COUNT(DISTINCT c.curso_id) AS cursos_ofrecidos,
+                        COALESCE(SUM(CASE WHEN i.estado_pago = "pagado" THEN i.monto_pagado ELSE 0 END), 0) AS total_ganancias
+                 FROM usuarios u
+                 LEFT JOIN cursos c ON c.instructor_id = u.usuario_id
+                 LEFT JOIN inscripciones i ON i.curso_id = c.curso_id
+                 WHERE u.rol = "instructor" AND u.bloqueado = 0
+                 GROUP BY u.usuario_id, u.correo, u.nombre, u.fecha_registro
+                 ORDER BY total_ganancias DESC, u.nombre ASC'
+            );
+
+            return array_map(static function (array $f): array {
+                $f['cursos_ofrecidos'] = (int) $f['cursos_ofrecidos'];
+                $f['total_ganancias'] = (float) $f['total_ganancias'];
+
+                return $f;
+            }, $filas);
+        }
+
+        $filas = $this->fetchAll(
+            'SELECT u.usuario_id, u.correo AS usuario, u.nombre, u.fecha_registro,
+                    COUNT(i.inscripcion_id) AS cursos_inscritos,
+                    COALESCE(ROUND(SUM(CASE WHEN i.completado = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(i.inscripcion_id), 0), 1), 0) AS porcentaje_terminados
+             FROM usuarios u
+             LEFT JOIN inscripciones i ON i.estudiante_id = u.usuario_id
+             WHERE u.rol = "estudiante" AND u.bloqueado = 0
+             GROUP BY u.usuario_id, u.correo, u.nombre, u.fecha_registro
+             ORDER BY u.nombre ASC'
+        );
+
+        return array_map(static function (array $f): array {
+            $f['cursos_inscritos'] = (int) $f['cursos_inscritos'];
+            $f['porcentaje_terminados'] = (float) $f['porcentaje_terminados'];
+
+            return $f;
         }, $filas);
     }
 

@@ -18,5 +18,9 @@ interface ReporteRepositoryInterface
 
     public function contarDetalle(array $filtros, ?int $instructorId): int;
 
-    public function detalleVentas(array $filtros, ?int $instructorId, int $limite, int $offset): array;
+    public function detalleVentas(array $filtros, ?int $instructorId, int $limite, int$offset): array;
+
+    public function ingresosPorMetodoPago(array $filtros, ?int $instructorId): array;
+
+    public function reporteUsuariosDetallado(string $tipoRol): array;
 }

@@ -52,6 +52,10 @@ class ReporteService implements ReporteServiceInterface
                 ],
                 'por_rol' => $this->reportes->usuariosPorRol($filtros, $instructorId),
                 'por_curso' => $this->reportes->ventasPorCurso($filtros, $instructorId),
+                'por_metodo_pago' => $this->reportes->ingresosPorMetodoPago($filtros, $instructorId),
+                'usuarios_detallado' => $rol === 'admin'
+                    ? $this->reportes->reporteUsuariosDetallado($filtros['rol'] === 'instructor' ? 'instructor' : 'estudiante')
+                    : [],
                 'detalle' => $this->reportes->detalleVentas(
                     $filtros,
                     $instructorId,
