@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Helpers\Auth;
-use App\Services\CategoriaService;
+use App\Services\Contracts\CategoriaServiceInterface;
 
 class CategoriaController extends Controller
 {
-    public function __construct(private readonly CategoriaService $categorias)
+    public function __construct(private readonly CategoriaServiceInterface $categorias)
     {
     }
 

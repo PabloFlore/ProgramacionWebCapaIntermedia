@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Services\CategoriaService;
+use App\Services\Contracts\CategoriaServiceInterface;
 
 final class ApiCategoriaController extends JsonController
 {
-    public function __construct(private readonly CategoriaService $categorias)
+    public function __construct(private readonly CategoriaServiceInterface $categorias)
     {
     }
 
@@ -40,7 +40,13 @@ final class ApiCategoriaController extends JsonController
             return;
         }
 
-        $this->responder($this->categorias->crear($payload, (int) ($usuario['usuario_id'] ?? Session::usuarioId())));
+        $resultado = $this->categorias->crear($payload, (int) ($usuario['usuario_id'] ?? Session::usuarioId()));
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Categoría creada correctamente.');
+        }
+
+        $this->responder($resultado);
     }
 
     public function actualizar(string $id): void
@@ -65,7 +71,13 @@ final class ApiCategoriaController extends JsonController
             return;
         }
 
-        $this->responder($this->categorias->actualizar($categoriaId, $payload));
+        $resultado = $this->categorias->actualizar($categoriaId, $payload);
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Categoría actualizada correctamente.');
+        }
+
+        $this->responder($resultado);
     }
 
     public function eliminar(string $id): void
@@ -83,7 +95,13 @@ final class ApiCategoriaController extends JsonController
             return;
         }
 
-        $this->responder($this->categorias->eliminar($categoriaId));
+        $resultado = $this->categorias->eliminar($categoriaId);
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Categoría eliminada correctamente.');
+        }
+
+        $this->responder($resultado);
     }
 
     private function id(string $valor): ?int

@@ -59,6 +59,11 @@ $cursoJson = json_encode(
                     <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars($nivel['video_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
                       <i class="bi bi-play-btn"></i> Ver
                     </a>
+                    <?php if (!empty($nivel['material_url'])): ?>
+                      <a class="btn btn-outline-info btn-sm" href="<?= htmlspecialchars($nivel['material_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
+                        <i class="bi bi-paperclip"></i> Material
+                      </a>
+                    <?php endif; ?>
                     <?php if ($autenticado): ?>
                       <button type="button" class="btn btn-outline-success btn-sm btn-completar-nivel" data-nivel-id="<?= (int) $nivel['nivel_id'] ?>" disabled>
                         Marcar completado
@@ -84,6 +89,9 @@ $cursoJson = json_encode(
           </div>
           <p class="small text-muted mt-2 mb-3" id="comentarios-total">
             <?= (int) $curso['total_comentarios'] ?> comentario(s) publicado(s).
+          </p>
+          <p class="small text-muted mb-3">
+            <i class="bi bi-info-circle"></i> Los comentarios retirados por moderación no se muestran.
           </p>
           <div id="comentarios-alerta" aria-live="polite"></div>
           <div id="comentarios-lista" class="list-group list-group-flush">
@@ -136,7 +144,7 @@ $cursoJson = json_encode(
                   <?php foreach ($curso['niveles'] as $nivel): ?>
                     <option value="<?= (int) $nivel['nivel_id'] ?>">
                       Nivel <?= (int) $nivel['orden'] ?> — <?= htmlspecialchars($nivel['titulo'], ENT_QUOTES, 'UTF-8') ?>
-                      <?= $nivel['precio'] !== null ? '($' . number_format((float) $nivel['precio'], 2, '.', ',') . ')' : '' ?>
+                      <?= $nivel['precio'] !== null ? '($' . number_format((float) $nivel['precio'], 2, '.', ',') . ' MXN)' : '' ?>
                     </option>
                   <?php endforeach; ?>
                 </select>

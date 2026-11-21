@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Services\MensajeService;
+use App\Services\Contracts\MensajeServiceInterface;
 
 final class ApiMensajeController extends JsonController
 {
-    public function __construct(private readonly MensajeService $mensajes)
+    public function __construct(private readonly MensajeServiceInterface $mensajes)
     {
     }
 
@@ -54,11 +54,17 @@ final class ApiMensajeController extends JsonController
             return;
         }
 
-        $this->responder($this->mensajes->crear(
+        $resultado = $this->mensajes->crear(
             (int) ($usuario['usuario_id'] ?? Session::usuarioId()),
             (string) ($usuario['rol'] ?? ''),
             $payload
-        ));
+        );
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Mensaje enviado correctamente.');
+        }
+
+        $this->responder($resultado);
     }
 
     public function marcarLeido(string $id): void
@@ -76,10 +82,16 @@ final class ApiMensajeController extends JsonController
             return;
         }
 
-        $this->responder($this->mensajes->marcarLeido(
+        $resultado = $this->mensajes->marcarLeido(
             (int) $mensajeId,
             (int) ($usuario['usuario_id'] ?? Session::usuarioId())
-        ));
+        );
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Mensaje marcado como leído.');
+        }
+
+        $this->responder($resultado);
     }
 
     private function responder(array $resultado): void

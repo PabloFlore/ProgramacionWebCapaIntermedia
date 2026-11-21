@@ -14,6 +14,17 @@
   form.addEventListener('submit', async function (event) {
     event.preventDefault();
     api.clearAlert(alertBox);
+
+    const confirmado = await window.SoscurConfirm({
+      titulo: 'Cerrar sesión',
+      mensaje: '¿Deseas cerrar tu sesión actual?',
+      aceptar: 'Cerrar sesión'
+    });
+
+    if (!confirmado) {
+      return;
+    }
+
     api.setLoading(boton, true, 'Saliendo...');
 
     try {

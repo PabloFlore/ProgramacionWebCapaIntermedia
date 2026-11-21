@@ -8,15 +8,15 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Helpers\Auth;
 use App\Helpers\Csrf;
-use App\Services\UserService;
+use App\Services\Contracts\UserServiceInterface;
 
 class UserController extends Controller
 {
     private const ORDENES_USUARIOS = ['usuario_id', 'nombre', 'correo', 'rol', 'bloqueado', 'fecha_registro'];
 
-    private UserService $userService;
+    private UserServiceInterface $userService;
 
-    public function __construct(UserService $userService)
+    public function __construct(UserServiceInterface $userService)
     {
         $this->userService = $userService;
     }

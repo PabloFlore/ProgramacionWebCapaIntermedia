@@ -8,15 +8,15 @@ use App\Core\JsonController;
 use App\Core\Request;
 use App\Helpers\Session;
 use App\Helpers\Upload;
-use App\Services\AuthService;
-use App\Services\UserService;
+use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\UserServiceInterface;
 
 class ApiAuthController extends JsonController
 {
-    private AuthService $authService;
-    private UserService $userService;
+    private AuthServiceInterface $authService;
+    private UserServiceInterface $userService;
 
-    public function __construct(AuthService $authService, UserService $userService)
+    public function __construct(AuthServiceInterface $authService, UserServiceInterface $userService)
     {
         $this->authService = $authService;
         $this->userService = $userService;
@@ -157,6 +157,7 @@ class ApiAuthController extends JsonController
     public function logout(): void
     {
         Session::destroy();
+        $this->flash('success', 'Sesión cerrada correctamente.');
         $this->respond(['mensaje' => 'Sesión cerrada'], 200);
     }
 

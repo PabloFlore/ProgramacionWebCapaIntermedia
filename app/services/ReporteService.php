@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Reporte;
+use App\Models\Contracts\ReporteRepositoryInterface;
+use App\Services\Contracts\ReporteServiceInterface;
 
-class ReporteService
+class ReporteService implements ReporteServiceInterface
 {
     private const ROLES = ['admin', 'instructor', 'estudiante'];
     private const ESTADOS_PAGO = ['pendiente', 'pagado', 'reembolsado'];
 
-    public function __construct(private Reporte $reportes)
+    public function __construct(private ReporteRepositoryInterface $reportes)
     {
     }
 

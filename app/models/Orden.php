@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Orden extends Model
+use App\Models\Contracts\OrdenRepositoryInterface;
+
+class Orden extends Model implements OrdenRepositoryInterface
 {
     public function crear(array $datos): int
     {

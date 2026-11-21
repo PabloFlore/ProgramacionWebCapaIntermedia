@@ -6,15 +6,15 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Core\Request;
-use App\Services\UserService;
+use App\Services\Contracts\UserServiceInterface;
 
 class ApiAdminController extends JsonController
 {
     private const ORDENES_USUARIOS = ['usuario_id', 'nombre', 'correo', 'rol', 'bloqueado', 'fecha_registro'];
 
-    private UserService $userService;
+    private UserServiceInterface $userService;
 
-    public function __construct(UserService $userService)
+    public function __construct(UserServiceInterface $userService)
     {
         $this->userService = $userService;
     }

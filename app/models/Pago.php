@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Pago extends Model
+use App\Models\Contracts\PagoRepositoryInterface;
+
+class Pago extends Model implements PagoRepositoryInterface
 {
     public function crear(array $datos): int
     {

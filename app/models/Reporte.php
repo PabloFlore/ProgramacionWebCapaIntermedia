@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Reporte extends Model
+use App\Models\Contracts\ReporteRepositoryInterface;
+
+class Reporte extends Model implements ReporteRepositoryInterface
 {
     public function resumenUsuarios(array $filtros, ?int $instructorId): array
     {

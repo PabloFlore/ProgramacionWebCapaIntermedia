@@ -65,6 +65,13 @@ $fechaLegible = static function (mixed $valor): string {
   </div>
 </form>
 
+<p class="small text-muted mb-3">
+  <i class="bi bi-info-circle"></i> Leyenda:
+  <span class="badge bg-success">Visible</span> comentario publicado;
+  <span class="badge bg-danger">Eliminado por administración</span> comentario retirado por moderación, con causa, moderador y fecha;
+  <span class="text-muted">Moderado</span> acción aplicada.
+</p>
+
 <div class="card border shadow-sm">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">

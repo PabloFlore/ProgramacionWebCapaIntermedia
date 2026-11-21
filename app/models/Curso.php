@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Curso extends Model
+use App\Models\Contracts\CursoRepositoryInterface;
+
+class Curso extends Model implements CursoRepositoryInterface
 {
     public function listarActivosPorCategoria(
         ?int $categoriaId,
@@ -63,6 +65,23 @@ class Curso extends Model
         }, $statement->fetchAll());
     }
 
+    public function listarActivos(): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT curso_id, titulo
+             FROM cursos
+             WHERE estatus = :estatus
+             ORDER BY titulo ASC',
+            ['estatus' => 'activo']
+        );
+
+        return array_map(static function (array $curso): array {
+            $curso['curso_id'] = (int) $curso['curso_id'];
+
+            return $curso;
+        }, $rows);
+    }
+
     public function contarActivosPorCategoria(?int $categoriaId, ?string $buscar = null): int
     {
         $sql = 'SELECT COUNT(*) AS total
@@ -114,25 +133,29 @@ class Curso extends Model
         return (int) $this->db->lastInsertId();
     }
 
-    public function buscarPorId(int $id): ?array
+    public function buscarPorId(int $id, bool $incluirInactivos = true): ?array
     {
-        $curso = $this->fetchOne(
-            'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
-                    c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
-                    cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre,
-                    (SELECT ROUND(AVG(com.calificacion), 2)
-                     FROM comentarios com
-                     WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS calificacion_promedio,
-                    (SELECT COUNT(*)
-                     FROM comentarios com
-                     WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS total_comentarios
-             FROM cursos c
-             INNER JOIN categorias cat ON cat.categoria_id = c.categoria_id
-             INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
-             WHERE c.curso_id = :id
-             LIMIT 1',
-            ['id' => $id]
-        );
+        $sql = 'SELECT c.curso_id, c.titulo, c.descripcion, c.imagen, c.precio, c.tipo_precio,
+                       c.instructor_id, c.categoria_id, c.estatus, c.fecha_creacion,
+                       cat.nombre AS categoria_nombre, u.nombre AS instructor_nombre,
+                       (SELECT ROUND(AVG(com.calificacion), 2)
+                        FROM comentarios com
+                        WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS calificacion_promedio,
+                       (SELECT COUNT(*)
+                        FROM comentarios com
+                        WHERE com.curso_id = c.curso_id AND com.eliminado_por_admin = 0) AS total_comentarios
+                FROM cursos c
+                INNER JOIN categorias cat ON cat.categoria_id = c.categoria_id
+                INNER JOIN usuarios u ON u.usuario_id = c.instructor_id
+                WHERE c.curso_id = :id';
+
+        if (!$incluirInactivos) {
+            $sql .= " AND c.estatus = 'activo'";
+        }
+
+        $sql .= ' LIMIT 1';
+
+        $curso = $this->fetchOne($sql, ['id' => $id]);
 
         if ($curso === null) {
             return null;

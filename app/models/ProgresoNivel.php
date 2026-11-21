@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class ProgresoNivel extends Model
+use App\Models\Contracts\ProgresoNivelRepositoryInterface;
+
+class ProgresoNivel extends Model implements ProgresoNivelRepositoryInterface
 {
     public function asegurar(int $inscripcionId, int $nivelId): bool
     {

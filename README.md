@@ -85,6 +85,9 @@ El avance por fases y las decisiones técnicas se documentan en [`docs/ESTADO_AV
 | GET | `/verificar-correo?token=...` | Confirma el correo desde el enlace y redirige a `/login` |
 | POST | `/logout` | Cerrar sesión |
 | GET | `/dashboard` | Panel según el rol |
+| GET | `/curso/{id}` | Detalle público del curso con niveles y comentarios |
+| GET | `/kardex` | Historial académico del estudiante con progreso y fecha de completado |
+| GET | `/cursos/gestion/{id}` | Detalle editable del curso para instructor/admin |
 | GET/POST | `/perfil` | Consultar y actualizar perfil |
 | POST | `/perfil/contrasena` | Cambiar contraseña |
 | GET | `/admin/usuarios` | Listado de usuarios (solo admin) |
@@ -106,6 +109,8 @@ Base: `/api/v1`
 | GET | `/categorias` | No | Categorías disponibles para el catálogo |
 | GET | `/cursos?categoria_id=1` | No | Cursos activos por categoría, con paginación |
 | GET | `/cursos?categoria_id=todas&q=modelado` | No | Búsqueda ampliada por título, descripción o categoría; `categoria_id=0|todas` incluye todas |
+| GET | `/cursos/gestion/{id}` | Instructor/admin | Detalle del curso con niveles para edición |
+| GET | `/kardex` | Estudiante | Historial académico con resumen, progreso y fecha de completado |
 | GET | `/categorias/gestion` | Admin | Categorías para administración |
 | POST | `/categorias` | Admin | Crear categoría (nombre único) |
 | PATCH | `/categorias/{id}` | Admin | Actualizar categoría |
@@ -148,6 +153,7 @@ El cliente consume la API propia con `async/await` y `fetch`, sin recargar la p�
 | Administración | `public/js/admin-usuarios.js` | Bloquear y reactivar usuarios |
 | Reportes | `public/js/reportes.js` | Validar rango de fechas y limpiar filtros |
 | Dashboard instructor/admin | `public/js/instructor.js` | Crear cursos con `POST /api/v1/cursos` |
+| Gestión de cursos | `public/js/course-gestion.js` | Crear/editar cursos y niveles con `GET /cursos/gestion/{id}`, `POST` y `PATCH`, con confirmaciones y avisos |
 | Administración de categorías | `public/js/admin-categorias.js` | Alta, edición y baja con confirmación |
 | Detalle de curso | `public/js/comentarios.js` | Publicar comentarios, recargar promedio y listar opiniones |
 | Moderación | `public/js/admin-comentarios.js` | Eliminar comentarios indicando causa y confirmación |
@@ -167,7 +173,7 @@ Los formularios conservan `action` y `method`, por lo que siguen funcionando sin
 
 ### Control de accesos
 
-Las rutas sensibles se protegen con `App\Middleware\AccessMiddleware` antes de ejecutar el controlador. Las reglas se declaran centralizadas en `app/config/access.php` y el `Router` las aplica automáticamente al registrar cada ruta.
+Las rutas sensibles se protegen con `App\Middleware\AccessMiddleware` antes de ejecutar el controlador. Las reglas se declaran centralizadas en `app/config/access.php` y el `Router` las aplica automáticamente al registrar cada ruta. La política es **denegar por defecto**: si una ruta no aparece en el archivo, se bloquea y se escribe un aviso en `error_log`.
 
 | Situación | Web | API |
 | --- | --- | --- |
@@ -175,9 +181,9 @@ Las rutas sensibles se protegen con `App\Middleware\AccessMiddleware` antes de e
 | Sesión sin rol permitido | `403` con vista de acceso denegado | `403` JSON |
 | Sesión con rol permitido | Ejecuta el controlador | Ejecuta el controlador |
 
-Rutas públicas: `/`, `/home`, `/login`, `/registro`, `GET /api/v1/cursos`, `GET /api/v1/cursos/{id}/comentarios`, `POST /api/v1/registro` y `POST /api/v1/login`. El resto de las rutas requieren sesión; las rutas de administración requieren rol `admin` y la creación de cursos requiere `instructor` o `admin`.
+Rutas públicas: `/`, `/home`, `/login`, `/registro`, `GET /api/v1/cursos`, `GET /api/v1/cursos/{id}/comentarios`, `POST /api/v1/registro` y `POST /api/v1/login`. El resto de las rutas requieren sesión; las rutas de administración requieren rol `admin`, la creación/edición de cursos requiere `instructor` o `admin` y el Kardex requiere `estudiante`.
 
-Para proteger una ruta nueva, agrégala a `app/config/access.php` con la clave `MÉTODO /ruta`: usa `null` para exigir solo sesión o un arreglo de roles permitidos.
+Para agregar una ruta nueva, regístrala con la clave `MÉTODO /ruta` en `app/config/access.php`: usa `'public'` para permitir acceso anónimo, `null` para exigir solo sesión o un arreglo de roles permitidos. Si se omite, la ruta se deniega.
 
 ### CORS
 
@@ -191,7 +197,7 @@ Orígenes locales permitidos por defecto:
 - `http://localhost:8080`
 - Los equivalentes con `http://127.0.0.1`
 
-Para cambiarlos, definir `CORS_ALLOWED_ORIGINS` con una lista separada por comas. No se admite `*`: se devuelve el origen exacto y `Access-Control-Allow-Credentials: true`.
+Para cambiarlos, definir `CORS_ALLOWED_ORIGINS` con una lista separada por comas. Por defecto se devuelve el origen exacto y `Access-Control-Allow-Credentials: true`. El preflight permite `GET`, `POST`, `PATCH`, `DELETE`, `OPTIONS` y las cabeceras `Accept`, `Content-Type`, `X-Requested-With` y `X-CSRF-Token`. Evita configurar `*`: con ese valor se responde `*` sin credenciales, por lo que no sirve para sesiones.
 
 | Caso | Respuesta |
 | --- | --- |
@@ -238,9 +244,9 @@ app/
 ├── controllers/         Controladores web y API
 ├── core/                Router, Container, Request, Controller y JsonController
 ├── helpers/             Auth, Csrf, Session, Upload, Url y SendGrid
-├── middleware/          Middleware de accesos, CORS y CSRF de API
-├── models/              Acceso a datos y contratos de repositorio
-├── services/            Lógica de autenticación, usuarios, correo y contratos
+├── middleware/          Fábricas de acceso/CORS, CSRF de API y CSRF web; contratos
+├── models/              Acceso a datos y contratos de repositorio en Contracts/
+├── services/            Lógica de negocio y contratos en Contracts/, incluido KardexService
 └── views/               Vistas PHP en ejecución
 public/
 ├── css/
@@ -267,7 +273,7 @@ Si `soscur_db` ya existía con el esquema anterior, aplicar `migrations/001_alig
 
 ## Pruebas
 
-La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15), reportes (carpeta 16), Fase 3 (carpeta 17: búsqueda, comentarios, promedio, moderación, mensajería y categorías) y Fase 4 (carpeta 18: logout con CSRF condicional, canje de token y tabla admin con búsqueda, orden y paginación). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
+La colección `docs/postman/soscur-api.postman_collection.json` contiene las pruebas de cursos, autenticación, perfil, administración, control de accesos, CORS, verificación de correo, pagos/certificados (carpeta 15), reportes (carpeta 16), Fase 3 (carpeta 17: búsqueda, comentarios, promedio, moderación, mensajería y categorías), Fase 4 (carpeta 18: logout con CSRF condicional, canje de token y tabla admin con búsqueda, orden y paginación) y Fase 5 (carpeta 19: kardex, detalle de gestión, reportes con pestaña activa, preflight CORS y CSRF de API). Ajustar `baseUrl` según la URL local del proyecto y, si hace falta, `corsAllowedOrigin`/`corsDeniedOrigin`. Las pruebas de rol insuficiente y origen no autorizado esperan `403`; las de sesión ausente esperan `401`. Los scripts de `tests/` usan `http://127.0.0.1:8000`, el mismo puerto del servidor embebido documentado arriba.
 
 Con `SENDGRID_SANDBOX=true`, la petición de registro devuelve `token_verificacion`; ese valor se usa en la carpeta «14. Verificación de correo» para comprobar `200` y, repetida, `400` por token ya usado. El reenvío sin sesión espera `401`.
 
@@ -275,4 +281,6 @@ También se puede validar la sintaxis de todo el código PHP con PowerShell:
 
 ```powershell
 Get-ChildItem -Recurse -Filter *.php app,public | ForEach-Object { php -l $_.FullName }
+Get-ChildItem -Recurse -Filter *.js public/js | ForEach-Object { node --check $_.FullName }
+php tests/di/substitution.php
 ```

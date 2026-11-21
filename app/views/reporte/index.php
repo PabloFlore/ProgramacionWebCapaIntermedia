@@ -59,6 +59,7 @@ $roles = ['estudiante', 'instructor', 'admin'];
 <?php endif; ?>
 
 <form id="form-reportes" method="get" action="<?= htmlspecialchars(Url::to('reportes'), ENT_QUOTES, 'UTF-8') ?>" class="card border shadow-sm mb-4">
+  <input type="hidden" name="tab" id="tab-reportes" value="<?= htmlspecialchars($filtros['tab'] ?? 'ventas', ENT_QUOTES, 'UTF-8') ?>">
   <div class="card-body p-4">
     <div class="row g-3">
       <div class="col-md-3">
@@ -171,6 +172,17 @@ $roles = ['estudiante', 'instructor', 'admin'];
     </div>
   </div>
 
+  <?php $tabActiva = ($filtros['tab'] ?? 'ventas') === 'alumnos' ? 'alumnos' : 'ventas'; ?>
+  <ul class="nav nav-tabs mb-4" id="tabs-reportes" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link <?= $tabActiva === 'ventas' ? 'active' : '' ?>" id="tab-ventas-btn" data-bs-toggle="tab" data-bs-target="#tab-ventas" type="button" role="tab" aria-controls="tab-ventas" aria-selected="<?= $tabActiva === 'ventas' ? 'true' : 'false' ?>">Ventas por curso</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link <?= $tabActiva === 'alumnos' ? 'active' : '' ?>" id="tab-alumnos-btn" data-bs-toggle="tab" data-bs-target="#tab-alumnos" type="button" role="tab" aria-controls="tab-alumnos" aria-selected="<?= $tabActiva === 'alumnos' ? 'true' : 'false' ?>">Desglose por alumno</button>
+    </li>
+  </ul>
+  <div class="tab-content">
+  <div class="tab-pane fade <?= $tabActiva === 'ventas' ? 'show active' : '' ?>" id="tab-ventas" role="tabpanel" aria-labelledby="tab-ventas-btn">
   <div class="row g-4 mb-4">
     <div class="col-lg-4">
       <div class="card border shadow-sm h-100">
@@ -223,7 +235,9 @@ $roles = ['estudiante', 'instructor', 'admin'];
       </div>
     </div>
   </div>
+  </div>
 
+  <div class="tab-pane fade <?= $tabActiva === 'alumnos' ? 'show active' : '' ?>" id="tab-alumnos" role="tabpanel" aria-labelledby="tab-alumnos-btn">
   <div class="card border shadow-sm">
     <div class="card-body p-4">
       <h2 class="h6 fw-bold">Desglose por alumno</h2>
@@ -267,16 +281,18 @@ $roles = ['estudiante', 'instructor', 'admin'];
         <nav class="mt-3" aria-label="Paginación de reportes">
           <ul class="pagination pagination-sm mb-0">
             <li class="page-item <?= $paginacion['pagina'] <= 1 ? 'disabled' : '' ?>">
-              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => max(1, $paginacion['pagina'] - 1)]), ENT_QUOTES, 'UTF-8') ?>">Anterior</a>
+              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => max(1, $paginacion['pagina'] - 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Anterior</a>
             </li>
             <li class="page-item disabled"><span class="page-link"><?= (int) $paginacion['pagina'] ?> / <?= (int) $paginacion['total_paginas'] ?></span></li>
             <li class="page-item <?= $paginacion['pagina'] >= $paginacion['total_paginas'] ? 'disabled' : '' ?>">
-              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => min($paginacion['total_paginas'], $paginacion['pagina'] + 1)]), ENT_QUOTES, 'UTF-8') ?>">Siguiente</a>
+              <a class="page-link" href="<?= htmlspecialchars(Url::to('reportes') . '?' . $queryCon(['pagina' => min($paginacion['total_paginas'], $paginacion['pagina'] + 1), 'tab' => 'alumnos']), ENT_QUOTES, 'UTF-8') ?>">Siguiente</a>
             </li>
           </ul>
         </nav>
       <?php endif; ?>
     </div>
+  </div>
+  </div>
   </div>
 <?php else: ?>
   <div class="alert alert-info">Corrige los filtros para ver el reporte.</div>

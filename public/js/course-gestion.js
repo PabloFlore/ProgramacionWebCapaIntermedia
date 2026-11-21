@@ -14,6 +14,8 @@
     tabla: document.getElementById('gestion-tabla'),
     filas: document.getElementById('gestion-filas'),
     alertaModal: document.getElementById('modal-curso-alerta'),
+    modal: document.getElementById('modalCursoGestion'),
+    modalTitulo: document.getElementById('modalCursoGestionTitulo'),
     formCurso: document.getElementById('form-curso-gestion'),
     guardarCurso: document.getElementById('btn-guardar-curso'),
     categorias: document.getElementById('curso_categoria_gestion'),
@@ -32,12 +34,14 @@
   };
 
   let cursoActivo = null;
+  let cursoEditandoId = null;
+  let nivelEditandoId = null;
 
   function precio(valor) {
     return '$' + Number(valor || 0).toLocaleString('es-MX', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    });
+    }) + ' MXN';
   }
 
   function boton(texto, clase, manejador) {
@@ -47,6 +51,30 @@
     elemento.textContent = texto;
     elemento.addEventListener('click', manejador);
     return elemento;
+  }
+
+  function resetCursoForm() {
+    cursoEditandoId = null;
+    elementos.formCurso.reset();
+    elementos.modalTitulo.textContent = 'Nuevo curso';
+    elementos.guardarCurso.textContent = 'Guardar';
+    api.clearAlert(elementos.alertaModal);
+
+    if (elementos.categorias.options.length > 0) {
+      elementos.categorias.selectedIndex = 0;
+    }
+  }
+
+  function resetNivelForm() {
+    nivelEditandoId = null;
+    elementos.nivelTitulo.value = '';
+    elementos.nivelVideo.value = '';
+    elementos.nivelOrden.value = '1';
+    elementos.nivelPrecio.value = '';
+    elementos.nivelMaterialUrl.value = '';
+    elementos.nivelMaterialTipo.value = '';
+    elementos.guardarNivel.textContent = 'Agregar nivel';
+    api.clearAlert(elementos.nivelesAlerta);
   }
 
   async function cargarCategorias() {
@@ -113,6 +141,14 @@
         acciones.className = 'text-end';
         const grupo = document.createElement('div');
         grupo.className = 'd-flex justify-content-end gap-1 flex-wrap';
+
+        const editar = boton('Editar', 'btn-outline-primary', function () {
+          editarCurso(Number(curso.curso_id));
+        });
+        editar.setAttribute('data-bs-toggle', 'modal');
+        editar.setAttribute('data-bs-target', '#modalCursoGestion');
+        grupo.appendChild(editar);
+
         grupo.appendChild(boton('Niveles', 'btn-outline-secondary', function () {
           abrirNiveles(Number(curso.curso_id));
         }));
@@ -142,6 +178,30 @@
     }
   }
 
+  async function editarCurso(cursoId) {
+    api.clearAlert(elementos.alertaModal);
+
+    try {
+      const respuesta = await api.request('/cursos/gestion/' + cursoId);
+      const curso = respuesta && respuesta.curso ? respuesta.curso : null;
+
+      if (!curso) {
+        throw new Error('No se pudo cargar el curso solicitado.');
+      }
+
+      cursoEditandoId = Number(curso.curso_id);
+      document.getElementById('curso_titulo_gestion').value = curso.titulo || '';
+      document.getElementById('curso_descripcion_gestion').value = curso.descripcion || '';
+      elementos.categorias.value = String(curso.categoria_id);
+      document.getElementById('curso_precio_gestion').value = Number(curso.precio || 0).toFixed(2);
+      document.getElementById('curso_tipo_gestion').value = curso.tipo_precio || 'curso';
+      elementos.modalTitulo.textContent = 'Editar curso';
+      elementos.guardarCurso.textContent = 'Actualizar';
+    } catch (error) {
+      api.showError(elementos.alertaModal, error);
+    }
+  }
+
   async function crearCurso(evento) {
     evento.preventDefault();
     api.clearAlert(elementos.alertaModal);
@@ -154,17 +214,20 @@
       tipo_precio: document.getElementById('curso_tipo_gestion').value
     };
 
+    const editando = cursoEditandoId !== null;
+    const url = editando ? '/cursos/' + cursoEditandoId : '/cursos';
+
     api.setLoading(elementos.guardarCurso, true, 'Guardando...');
 
     try {
-      const respuesta = await api.request('/cursos', { method: 'POST', body: cuerpo });
+      const respuesta = await api.request(url, { method: editando ? 'PATCH' : 'POST', body: cuerpo });
       api.showAlert(elementos.alerta, 'success', respuesta.message || respuesta.mensaje);
-      elementos.formCurso.reset();
+      resetCursoForm();
       await cargarCursos();
     } catch (error) {
       api.showError(elementos.alertaModal, error);
     } finally {
-      api.setLoading(elementos.guardarCurso, false);
+      api.setLoading(elementos.guardarCurso, false, editando ? 'Actualizar' : 'Guardar');
     }
   }
 
@@ -198,7 +261,7 @@
     cursoActivo = cursoId;
     elementos.panelNiveles.classList.remove('d-none');
     elementos.nivelesTitulo.textContent = 'Niveles del curso #' + cursoId;
-    api.clearAlert(elementos.nivelesAlerta);
+    resetNivelForm();
     await cargarNiveles();
     elementos.panelNiveles.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -209,9 +272,9 @@
     }
 
     try {
-      const respuesta = await api.request('/cursos/' + cursoActivo);
-      const niveles = respuesta && respuesta.data && Array.isArray(respuesta.data.niveles)
-        ? respuesta.data.niveles
+      const respuesta = await api.request('/cursos/gestion/' + cursoActivo);
+      const niveles = respuesta && respuesta.curso && Array.isArray(respuesta.curso.niveles)
+        ? respuesta.curso.niveles
         : [];
       elementos.nivelesListado.innerHTML = '';
 
@@ -230,16 +293,35 @@
         const texto = document.createElement('span');
         texto.textContent = '[' + nivel.orden + '] ' + nivel.titulo;
 
-        const eliminar = boton('Eliminar', 'btn-outline-danger', function () {
+        const acciones = document.createElement('div');
+        acciones.className = 'd-flex gap-2';
+        acciones.appendChild(boton('Editar', 'btn-outline-primary', function () {
+          editarNivel(nivel);
+        }));
+        acciones.appendChild(boton('Eliminar', 'btn-outline-danger', function () {
           eliminarNivel(nivel);
-        });
+        }));
+
         fila.appendChild(texto);
-        fila.appendChild(eliminar);
+        fila.appendChild(acciones);
         elementos.nivelesListado.appendChild(fila);
       });
     } catch (error) {
       api.showError(elementos.nivelesAlerta, error);
     }
+  }
+
+  function editarNivel(nivel) {
+    nivelEditandoId = Number(nivel.nivel_id);
+    elementos.nivelTitulo.value = nivel.titulo || '';
+    elementos.nivelVideo.value = nivel.video_url || '';
+    elementos.nivelOrden.value = String(nivel.orden || 1);
+    elementos.nivelPrecio.value = nivel.precio === null || nivel.precio === undefined ? '' : Number(nivel.precio).toFixed(2);
+    elementos.nivelMaterialUrl.value = nivel.material_url || '';
+    elementos.nivelMaterialTipo.value = nivel.material_tipo || '';
+    elementos.guardarNivel.textContent = 'Actualizar nivel';
+    api.clearAlert(elementos.nivelesAlerta);
+    elementos.nivelTitulo.focus();
   }
 
   async function crearNivel() {
@@ -256,23 +338,23 @@
       material_tipo: elementos.nivelMaterialTipo.value || null
     };
 
+    const editando = nivelEditandoId !== null;
+    const url = editando ? '/niveles/' + nivelEditandoId : '/cursos/' + cursoActivo + '/niveles';
+
     api.clearAlert(elementos.nivelesAlerta);
     api.setLoading(elementos.guardarNivel, true, 'Guardando...');
 
     try {
-      const respuesta = await api.request('/cursos/' + cursoActivo + '/niveles', { method: 'POST', body: cuerpo });
+      const respuesta = await api.request(url, { method: editando ? 'PATCH' : 'POST', body: cuerpo });
       api.showAlert(elementos.nivelesAlerta, 'success', respuesta.message);
-      elementos.nivelTitulo.value = '';
-      elementos.nivelVideo.value = '';
-      elementos.nivelOrden.value = String(Number(elementos.nivelOrden.value) + 1);
-      elementos.nivelPrecio.value = '';
-      elementos.nivelMaterialUrl.value = '';
-      elementos.nivelMaterialTipo.value = '';
+      const siguienteOrden = Number(elementos.nivelOrden.value || 0) + 1;
+      resetNivelForm();
+      elementos.nivelOrden.value = String(siguienteOrden);
       await cargarNiveles();
     } catch (error) {
       api.showError(elementos.nivelesAlerta, error);
     } finally {
-      api.setLoading(elementos.guardarNivel, false);
+      api.setLoading(elementos.guardarNivel, false, editando ? 'Actualizar nivel' : 'Agregar nivel');
     }
   }
 
@@ -303,7 +385,9 @@
   elementos.cerrarNiveles.addEventListener('click', function () {
     elementos.panelNiveles.classList.add('d-none');
     cursoActivo = null;
+    resetNivelForm();
   });
+  elementos.modal.addEventListener('hidden.bs.modal', resetCursoForm);
 
   cargarCategorias();
   cargarCursos();

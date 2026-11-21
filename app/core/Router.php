@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use App\Middleware\AccessMiddleware;
-use App\Middleware\CorsMiddleware;
-use App\Middleware\CsrfApiMiddleware;
+use App\Middleware\Contracts\AccessMiddlewareFactoryInterface;
+use App\Middleware\Contracts\CorsMiddlewareFactoryInterface;
+use App\Middleware\Contracts\CsrfApiMiddlewareInterface;
+use App\Middleware\CsrfWebMiddleware;
 use App\Middleware\MiddlewareInterface;
+use InvalidArgumentException;
 
 class Router
 {
@@ -20,12 +22,12 @@ class Router
     ];
 
     private array $accessPolicy;
-    private ?Container $container;
 
-    public function __construct(?array $accessPolicy = null, ?Container $container = null)
-    {
+    public function __construct(
+        private readonly Container $container,
+        ?array $accessPolicy = null
+    ) {
         $this->accessPolicy = $accessPolicy ?? require __DIR__ . '/../config/access.php';
-        $this->container = $container;
     }
 
     public function get(string $uri, callable|array $action, array $middleware = []): void
@@ -67,12 +69,24 @@ class Router
     private function accessMiddleware(string $method, string $uri): array
     {
         $key = $method . ' ' . $uri;
+        $factory = $this->container->get(AccessMiddlewareFactoryInterface::class);
 
         if (!array_key_exists($key, $this->accessPolicy)) {
+            error_log('Política de acceso no definida para ' . $key);
+            return [$factory->create([])];
+        }
+
+        $roles = $this->accessPolicy[$key];
+
+        if ($roles === 'public') {
             return [];
         }
 
-        return [new AccessMiddleware($this->accessPolicy[$key])];
+        if ($roles !== null && !is_array($roles)) {
+            throw new InvalidArgumentException('Política de acceso inválida para ' . $key);
+        }
+
+        return [$factory->create($roles)];
     }
 
     public function dispatch(string $uri, string $method): void
@@ -82,7 +96,10 @@ class Router
 
         if (str_starts_with($uri, '/api/')) {
             $this->runMiddleware(
-                [new CorsMiddleware($method), new CsrfApiMiddleware()],
+                [
+                    $this->container->get(CorsMiddlewareFactoryInterface::class)->create($method),
+                    $this->container->get(CsrfApiMiddlewareInterface::class),
+                ],
                 $uri,
                 function () use ($uri, $method): void {
                     $this->dispatchRoute($uri, $method);
@@ -91,7 +108,13 @@ class Router
             return;
         }
 
-        $this->dispatchRoute($uri, $method);
+        $middleware = in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+            ? [$this->container->get(CsrfWebMiddleware::class)]
+            : [];
+
+        $this->runMiddleware($middleware, $uri, function () use ($uri, $method): void {
+            $this->dispatchRoute($uri, $method);
+        });
     }
 
     private function dispatchRoute(string $uri, string $method): void
@@ -159,7 +182,7 @@ class Router
     {
         foreach (array_reverse($middleware) as $layer) {
             if (!$layer instanceof MiddlewareInterface) {
-                throw new \InvalidArgumentException('El middleware debe implementar MiddlewareInterface.');
+                throw new InvalidArgumentException('El middleware debe implementar MiddlewareInterface.');
             }
 
             $nextLayer = $next;
@@ -190,9 +213,7 @@ class Router
         if (is_array($action)) {
             [$controller, $method] = $action;
             if (is_string($controller)) {
-                $controller = $this->container !== null
-                    ? $this->container->get($controller)
-                    : new $controller();
+                $controller = $this->container->get($controller);
             }
             call_user_func_array([$controller, $method], $params);
             return;

@@ -22,7 +22,19 @@ abstract class JsonController extends Controller
 
     protected function readJsonBody(): ?array
     {
-        $payload = json_decode((string) file_get_contents('php://input'), true);
+        $longitud = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+
+        if ($longitud > 1048576) {
+            return null;
+        }
+
+        $cuerpo = file_get_contents('php://input', false, null, 0, 1048577);
+
+        if ($cuerpo === false || strlen($cuerpo) > 1048576) {
+            return null;
+        }
+
+        $payload = json_decode($cuerpo, true);
 
         return is_array($payload) ? $payload : null;
     }

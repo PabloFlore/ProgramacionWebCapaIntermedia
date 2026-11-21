@@ -16,9 +16,14 @@ require __DIR__ . '/../templates/header.php';
     <h1 class="h3 fw-bold mb-1">Mis cursos</h1>
     <p class="text-muted small mb-0">Consulta tu progreso y descarga tus certificados.</p>
   </div>
-  <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars(Url::to('verificar-diploma'), ENT_QUOTES, 'UTF-8') ?>">
-    Verificar certificado
-  </a>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars(Url::to('kardex'), ENT_QUOTES, 'UTF-8') ?>">
+      Ver kardex
+    </a>
+    <a class="btn btn-outline-secondary btn-sm" href="<?= htmlspecialchars(Url::to('verificar-diploma'), ENT_QUOTES, 'UTF-8') ?>">
+      Verificar certificado
+    </a>
+  </div>
 </div>
 
 <?php if (count($inscripciones) === 0): ?>

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\JsonController;
-use App\Services\InscripcionService;
+use App\Services\Contracts\InscripcionServiceInterface;
 
 final class ApiInscripcionController extends JsonController
 {
-    public function __construct(private readonly InscripcionService $inscripciones)
+    public function __construct(private readonly InscripcionServiceInterface $inscripciones)
     {
     }
 
@@ -135,6 +135,11 @@ final class ApiInscripcionController extends JsonController
 
         if ($codigo === '') {
             $this->error(400, 'Ingresa un código de verificación');
+            return;
+        }
+
+        if (mb_strlen($codigo) > 64 || preg_match('/^[A-Za-z0-9-]+$/', $codigo) !== 1) {
+            $this->error(400, 'El código de verificación no es válido');
             return;
         }
 

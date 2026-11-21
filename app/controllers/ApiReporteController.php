@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Services\ReporteService;
+use App\Services\Contracts\ReporteServiceInterface;
 
 final class ApiReporteController extends JsonController
 {
-    public function __construct(private readonly ReporteService $reportes)
+    public function __construct(private readonly ReporteServiceInterface $reportes)
     {
     }
 

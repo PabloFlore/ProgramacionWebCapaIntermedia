@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Services\ComentarioService;
+use App\Services\Contracts\ComentarioServiceInterface;
 
 final class ApiComentarioController extends JsonController
 {
-    public function __construct(private readonly ComentarioService $comentarios)
+    public function __construct(private readonly ComentarioServiceInterface $comentarios)
     {
     }
 
@@ -88,11 +88,17 @@ final class ApiComentarioController extends JsonController
             return;
         }
 
-        $this->responder($this->comentarios->eliminar(
+        $resultado = $this->comentarios->eliminar(
             $comentarioId,
             $payload,
             (int) ($usuario['usuario_id'] ?? Session::usuarioId())
-        ));
+        );
+
+        if (($resultado['ok'] ?? false) === true) {
+            $this->flash('success', 'Comentario retirado por moderación.');
+        }
+
+        $this->responder($resultado);
     }
 
     private function id(string $valor): ?int

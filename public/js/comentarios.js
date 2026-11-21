@@ -117,6 +117,7 @@
       })
         .then(function (payload) {
           formulario.reset();
+          window.SoscurApi.showAlert(alertaFormulario, 'success', 'Comentario publicado correctamente.');
           if (payload.resumen) {
             if (resumen) {
               resumen.textContent = promedioLegible(payload.resumen.calificacion_promedio);

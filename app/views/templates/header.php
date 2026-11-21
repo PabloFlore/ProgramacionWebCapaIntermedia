@@ -34,6 +34,9 @@ $navUsuario = Auth::user();
         <?php if ($navUsuario !== null): ?>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('dashboard'), ENT_QUOTES, 'UTF-8') ?>">Dashboard</a></li>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('mis-cursos'), ENT_QUOTES, 'UTF-8') ?>">Mis cursos</a></li>
+          <?php if ($navUsuario['rol'] === 'estudiante'): ?>
+            <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('kardex'), ENT_QUOTES, 'UTF-8') ?>">Kardex</a></li>
+          <?php endif; ?>
           <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('mensajes'), ENT_QUOTES, 'UTF-8') ?>">Mensajes</a></li>
           <?php if (in_array($navUsuario['rol'], ['instructor', 'admin'], true)): ?>
             <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars(Url::to('admin/cursos'), ENT_QUOTES, 'UTF-8') ?>">Gestionar cursos</a></li>

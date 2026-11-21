@@ -6,14 +6,14 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Helpers\Auth;
-use App\Services\CourseService;
-use App\Services\MensajeService;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Services\Contracts\MensajeServiceInterface;
 
 class MensajeController extends Controller
 {
     public function __construct(
-        private readonly MensajeService $mensajes,
-        private readonly CourseService $courses
+        private readonly MensajeServiceInterface $mensajes,
+        private readonly CursoRepositoryInterface $cursos
     ) {
     }
 
@@ -37,7 +37,7 @@ class MensajeController extends Controller
             'pagination' => $resultado['ok'] ? $resultado['pagination'] : [],
             'no_leidos' => $resultado['ok'] ? $resultado['no_leidos'] : 0,
             'destinatarios' => $destinatarios['ok'] ? $destinatarios['data'] : [],
-            'cursos' => $this->courses->listarGestion(null, 1, 50)['data'],
+            'cursos' => $this->cursos->listarActivos(),
             'filtros' => [
                 'buzon' => ($_GET['buzon'] ?? 'recibidos') === 'enviados' ? 'enviados' : 'recibidos',
             ],

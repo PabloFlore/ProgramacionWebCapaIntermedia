@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Categoria;
+use App\Models\Contracts\CategoriaRepositoryInterface;
+use App\Services\Contracts\CategoriaServiceInterface;
 
-class CategoriaService
+class CategoriaService implements CategoriaServiceInterface
 {
-    public function __construct(private Categoria $categorias)
+    public function __construct(private CategoriaRepositoryInterface $categorias)
     {
     }
 

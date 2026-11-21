@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Categoria extends Model
+use App\Models\Contracts\CategoriaRepositoryInterface;
+
+class Categoria extends Model implements CategoriaRepositoryInterface
 {
     public function listar(): array
     {

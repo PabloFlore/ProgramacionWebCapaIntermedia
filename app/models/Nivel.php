@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Nivel extends Model
+use App\Models\Contracts\NivelRepositoryInterface;
+
+class Nivel extends Model implements NivelRepositoryInterface
 {
     public function listarPorCurso(int $cursoId): array
     {

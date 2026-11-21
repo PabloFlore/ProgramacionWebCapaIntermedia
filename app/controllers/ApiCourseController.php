@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Services\CourseService;
+use App\Services\Contracts\CourseServiceInterface;
 
 final class ApiCourseController extends JsonController
 {
-    public function __construct(private readonly CourseService $courses)
+    public function __construct(private readonly CourseServiceInterface $courses)
     {
     }
 
@@ -23,7 +23,7 @@ final class ApiCourseController extends JsonController
             return;
         }
 
-        $curso = $this->courses->detalle($cursoId);
+        $curso = $this->courses->detallePublico($cursoId);
 
         if ($curso === null) {
             $this->error(404, 'Curso no encontrado');
@@ -176,6 +176,28 @@ final class ApiCourseController extends JsonController
 
         $this->responder($this->courses->eliminarNivel(
             $nivelId,
+            (int) ($usuario['usuario_id'] ?? Session::usuarioId()),
+            (string) $usuario['rol']
+        ));
+    }
+
+    public function gestionDetalle(string $id): void
+    {
+        $usuario = $this->requireRole(['instructor', 'admin']);
+
+        if ($usuario === null) {
+            return;
+        }
+
+        $cursoId = $this->id($id);
+
+        if ($cursoId === null) {
+            $this->error(400, 'El identificador del curso no es válido');
+            return;
+        }
+
+        $this->responder($this->courses->detalleGestion(
+            $cursoId,
             (int) ($usuario['usuario_id'] ?? Session::usuarioId()),
             (string) $usuario['rol']
         ));

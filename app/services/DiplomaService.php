@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Diploma;
+use App\Models\Contracts\DiplomaRepositoryInterface;
+use App\Services\Contracts\DiplomaServiceInterface;
 
-final class DiplomaService
+final class DiplomaService implements DiplomaServiceInterface
 {
-    public function __construct(private readonly Diploma $diplomas)
+    public function __construct(private readonly DiplomaRepositoryInterface $diplomas)
     {
     }
 
@@ -40,7 +41,7 @@ final class DiplomaService
     {
         $codigo = strtoupper(trim($codigo));
 
-        if ($codigo === '') {
+        if ($codigo === '' || mb_strlen($codigo) > 64 || preg_match('/^[A-Za-z0-9-]+$/', $codigo) !== 1) {
             return null;
         }
 

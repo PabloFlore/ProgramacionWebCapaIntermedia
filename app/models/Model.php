@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Config\Database;
 use PDO;
 
 abstract class Model
 {
     protected PDO $db;
 
-    public function __construct(?PDO $db = null)
+    public function __construct(PDO $db)
     {
-        $this->db = $db ?? Database::getConnection();
+        $this->db = $db;
     }
 
     protected function fetchAll(string $sql, array $params = []): array

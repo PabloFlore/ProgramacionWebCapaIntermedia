@@ -6,8 +6,9 @@ namespace App\Middleware;
 
 use App\Core\Request;
 use App\Helpers\Csrf;
+use App\Middleware\Contracts\CsrfApiMiddlewareInterface;
 
-final class CsrfApiMiddleware implements MiddlewareInterface
+final class CsrfApiMiddleware implements CsrfApiMiddlewareInterface
 {
     private const METODOS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 

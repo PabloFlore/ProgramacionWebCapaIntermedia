@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Curso;
-use App\Models\Mensaje;
-use App\Models\Usuario;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Models\Contracts\MensajeRepositoryInterface;
+use App\Models\Contracts\UsuarioRepositoryInterface;
+use App\Services\Contracts\MensajeServiceInterface;
 
-class MensajeService
+class MensajeService implements MensajeServiceInterface
 {
     private const ROLES_DESTINO = [
         'estudiante' => ['instructor', 'admin'],
@@ -20,9 +21,9 @@ class MensajeService
     private const MAX_LIMIT = 50;
 
     public function __construct(
-        private readonly Mensaje $mensajes,
-        private readonly Usuario $usuarios,
-        private readonly Curso $cursos
+        private readonly MensajeRepositoryInterface $mensajes,
+        private readonly UsuarioRepositoryInterface $usuarios,
+        private readonly CursoRepositoryInterface $cursos
     ) {
     }
 

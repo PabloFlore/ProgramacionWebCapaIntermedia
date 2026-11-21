@@ -4,29 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Config\Database;
 use App\Helpers\Url;
 use App\Models\Contracts\UsuarioRepositoryInterface;
+use App\Services\Contracts\AuthServiceInterface;
 use App\Services\Contracts\MailerInterface;
 use DateTimeImmutable;
 use PDO;
 use PDOException;
 use Throwable;
 
-final class AuthService
+final class AuthService implements AuthServiceInterface
 {
     public const MAX_INTENTOS = 3;
     private const ROLES_REGISTRO = ['estudiante', 'instructor'];
     private const GENEROS = ['femenino', 'masculino', 'prefiero_no_decir'];
 
-    private readonly PDO $db;
-
     public function __construct(
         private readonly UsuarioRepositoryInterface $usuarios,
         private readonly MailerInterface $mailer,
-        ?PDO $db = null
+        private readonly PDO $db
     ) {
-        $this->db = $db ?? Database::getConnection();
     }
 
     public function registro(array $datos): array

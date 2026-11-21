@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use App\Models\Contracts\UsuarioRepositoryInterface;
-use App\Models\Usuario;
+use LogicException;
 
 final class Auth
 {
@@ -16,6 +16,15 @@ final class Auth
         self::$userRepository = $repository;
     }
 
+    private static function repositorio(): UsuarioRepositoryInterface
+    {
+        if (self::$userRepository === null) {
+            throw new LogicException('El repositorio de usuarios de Auth no está configurado.');
+        }
+
+        return self::$userRepository;
+    }
+
     public static function user(): ?array
     {
         $usuarioId = Session::usuarioId();
@@ -24,8 +33,7 @@ final class Auth
             return null;
         }
 
-        $repositorio = self::$userRepository ?? new Usuario();
-        $usuario = $repositorio->buscarPorId($usuarioId);
+        $usuario = self::repositorio()->buscarPorId($usuarioId);
 
         if ($usuario === null || (int) $usuario['bloqueado'] === 1) {
             Session::clearUser();

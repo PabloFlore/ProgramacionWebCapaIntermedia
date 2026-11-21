@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Categoria;
+use App\Models\Contracts\CategoriaRepositoryInterface;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Models\Contracts\NivelRepositoryInterface;
 use App\Models\Contracts\UsuarioRepositoryInterface;
-use App\Models\Curso;
-use App\Models\Nivel;
+use App\Services\Contracts\CourseServiceInterface;
 use PDOException;
 
-final class CourseService
+final class CourseService implements CourseServiceInterface
 {
     private const TIPOS_PRECIO = ['curso', 'nivel'];
     private const ESTATUS = ['activo', 'inactivo'];
 
     public function __construct(
-        private readonly Curso $cursos,
-        private readonly Categoria $categorias,
-        private readonly Nivel $niveles,
+        private readonly CursoRepositoryInterface $cursos,
+        private readonly CategoriaRepositoryInterface $categorias,
+        private readonly NivelRepositoryInterface $niveles,
         private readonly UsuarioRepositoryInterface $usuarios
     ) {
     }
@@ -34,6 +35,41 @@ final class CourseService
         $curso['niveles'] = $this->niveles->listarPorCurso($cursoId);
 
         return $curso;
+    }
+
+    public function detallePublico(int $cursoId): ?array
+    {
+        $curso = $this->cursos->buscarPorId($cursoId, false);
+
+        if ($curso === null) {
+            return null;
+        }
+
+        $curso['niveles'] = $this->niveles->listarPorCurso($cursoId);
+
+        return $curso;
+    }
+
+    public function detalleGestion(int $cursoId, int $usuarioId, string $rol): array
+    {
+        $curso = $this->cursos->buscarPorId($cursoId);
+
+        if ($curso === null) {
+            return $this->fallo(404, 'Curso no encontrado');
+        }
+
+        if (!$this->puedeGestionar($curso, $usuarioId, $rol)) {
+            return $this->fallo(403, 'No tienes permisos para administrar este curso');
+        }
+
+        $curso['niveles'] = $this->niveles->listarPorCurso($cursoId);
+
+        return [
+            'ok' => true,
+            'status' => 200,
+            'message' => 'Detalle del curso obtenido correctamente',
+            'curso' => $curso,
+        ];
     }
 
     public function listarGestion(?int $instructorId, int $pagina, int $limite): array
@@ -264,6 +300,10 @@ final class CourseService
             $errores[] = 'titulo es obligatorio y no debe exceder 150 caracteres';
         }
 
+        if ($imagen !== null && mb_strlen($imagen) > 255) {
+            $errores[] = 'imagen no debe exceder 255 caracteres';
+        }
+
         if (!is_numeric($precio) || (float) $precio < 0 || (float) $precio > 99999999.99) {
             $errores[] = 'precio debe ser un número entre 0 y 99999999.99';
         }
@@ -307,8 +347,8 @@ final class CourseService
             $errores[] = 'titulo es obligatorio y no debe exceder 150 caracteres';
         }
 
-        if ($videoUrl === '' || filter_var($videoUrl, FILTER_VALIDATE_URL) === false) {
-            $errores[] = 'video_url debe ser una URL válida';
+        if (!$this->esUrlSegura($videoUrl)) {
+            $errores[] = 'video_url debe ser una URL http o https válida';
         }
 
         if (!ctype_digit((string) $orden) || (int) $orden <= 0) {
@@ -321,6 +361,10 @@ final class CourseService
 
         if (($materialUrl === '') !== ($materialTipo === '')) {
             $errores[] = 'material_url y material_tipo deben indicarse juntos';
+        }
+
+        if ($materialUrl !== '' && !$this->esUrlSegura($materialUrl)) {
+            $errores[] = 'material_url debe ser una URL http o https válida';
         }
 
         if ($materialTipo !== '' && !in_array($materialTipo, ['pdf', 'enlace'], true)) {
@@ -338,6 +382,17 @@ final class CourseService
                 'material_tipo' => $materialTipo === '' ? null : $materialTipo,
             ],
         ];
+    }
+
+    private function esUrlSegura(string $url): bool
+    {
+        if ($url === '' || mb_strlen($url) > 2048 || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+
+        $esquema = parse_url($url, PHP_URL_SCHEME);
+
+        return is_string($esquema) && in_array(strtolower($esquema), ['http', 'https'], true);
     }
 
     private function resolverInstructor(array $datos, int $usuarioId, string $rol): ?int

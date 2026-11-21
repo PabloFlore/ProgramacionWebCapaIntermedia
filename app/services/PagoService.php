@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Orden;
-use App\Models\Pago;
+use App\Models\Contracts\OrdenRepositoryInterface;
+use App\Models\Contracts\PagoRepositoryInterface;
+use App\Services\Contracts\PagoServiceInterface;
 
-final class PagoService
+final class PagoService implements PagoServiceInterface
 {
     public function __construct(
-        private readonly Pago $pagos,
-        private readonly Orden $ordenes
+        private readonly PagoRepositoryInterface $pagos,
+        private readonly OrdenRepositoryInterface $ordenes
     ) {
     }
 

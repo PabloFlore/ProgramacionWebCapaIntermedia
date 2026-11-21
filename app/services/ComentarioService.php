@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Comentario;
-use App\Models\Curso;
+use App\Models\Contracts\ComentarioRepositoryInterface;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Services\Contracts\ComentarioServiceInterface;
 
-class ComentarioService
+class ComentarioService implements ComentarioServiceInterface
 {
     public function __construct(
-        private readonly Comentario $comentarios,
-        private readonly Curso $cursos
+        private readonly ComentarioRepositoryInterface $comentarios,
+        private readonly CursoRepositoryInterface $cursos
     ) {
     }
 

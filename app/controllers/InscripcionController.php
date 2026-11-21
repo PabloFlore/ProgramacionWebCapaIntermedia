@@ -6,11 +6,11 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Helpers\Session;
-use App\Services\InscripcionService;
+use App\Services\Contracts\InscripcionServiceInterface;
 
 final class InscripcionController extends Controller
 {
-    public function __construct(private readonly InscripcionService $inscripciones)
+    public function __construct(private readonly InscripcionServiceInterface $inscripciones)
     {
     }
 

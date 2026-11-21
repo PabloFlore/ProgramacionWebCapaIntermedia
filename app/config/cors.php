@@ -27,8 +27,8 @@ $origins = array_values(array_unique(array_filter(array_map(
 
 return [
     'allowed_origins' => $origins,
-    'allowed_methods' => ['GET', 'POST', 'PATCH', 'OPTIONS'],
-    'allowed_headers' => ['Accept', 'Content-Type', 'X-Requested-With'],
+    'allowed_methods' => ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    'allowed_headers' => ['Accept', 'Content-Type', 'X-Requested-With', 'X-CSRF-Token'],
     'max_age' => 600,
-    'allow_credentials' => true,
+    'allow_credentials' => !in_array('*', $origins, true),
 ];

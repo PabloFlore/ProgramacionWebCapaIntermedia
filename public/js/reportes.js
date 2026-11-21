@@ -24,6 +24,26 @@
     });
   }
 
+  var tabVentas = document.getElementById('tab-ventas-btn');
+  var tabAlumnos = document.getElementById('tab-alumnos-btn');
+  var tabOculta = document.getElementById('tab-reportes');
+
+  if (tabAlumnos) {
+    tabAlumnos.addEventListener('shown.bs.tab', function () {
+      if (tabOculta) {
+        tabOculta.value = 'alumnos';
+      }
+    });
+  }
+
+  if (tabVentas) {
+    tabVentas.addEventListener('shown.bs.tab', function () {
+      if (tabOculta) {
+        tabOculta.value = 'ventas';
+      }
+    });
+  }
+
   form.addEventListener('submit', function (event) {
     if (desde && hasta && desde.value && hasta.value && desde.value > hasta.value) {
       event.preventDefault();

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class MetodoPago extends Model
+use App\Models\Contracts\MetodoPagoRepositoryInterface;
+
+class MetodoPago extends Model implements MetodoPagoRepositoryInterface
 {
     public function listarActivos(): array
     {

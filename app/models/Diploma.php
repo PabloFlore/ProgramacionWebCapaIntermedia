@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Diploma extends Model
+use App\Models\Contracts\DiplomaRepositoryInterface;
+
+class Diploma extends Model implements DiplomaRepositoryInterface
 {
     public function buscarPorInscripcion(int $inscripcionId): ?array
     {

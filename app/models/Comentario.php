@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class Comentario extends Model
+use App\Models\Contracts\ComentarioRepositoryInterface;
+
+class Comentario extends Model implements ComentarioRepositoryInterface
 {
     public function listarPorCurso(int $cursoId): array
     {

@@ -4,23 +4,23 @@ Este documento acompaña a `README.md` para que cualquier persona del equipo ent
 
 ## Contexto
 
-SOSCUR Portal es un MVC PHP 8.2 sin framework, con MySQL y un front controller en `public/index.php`. La API propia vive bajo `/api/v1` y es consumida por el navegador mediante `fetch` (`public/js/api.js`). La autenticación usa sesiones, CSRF en formularios web, `password_hash()` y control de accesos centralizado en `app/config/access.php`.
+SOSCUR Portal es un MVC PHP 8.2 sin framework, con MySQL y un front controller en `public/index.php`. La API propia vive bajo `/api/v1` y es consumida por el navegador mediante `fetch` (`public/js/api.js`). La autenticación usa sesiones, CSRF en formularios web y en peticiones API del navegador, `password_hash()` y control de accesos centralizado con política **denegar por defecto** en `app/config/access.php`.
 
-La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y diplomas (`schema.sql`), y `seed.sql` contiene datos de demostración. Parte de esa funcionalidad todavía no tiene código ejecutable; las maquetas de `docs/prototipos/` muestran la intención pero **no son servidas por el router**.
+La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios, diplomas y mensajería (`schema.sql`), y `seed.sql` contiene datos de demostración. Toda esa funcionalidad tiene código ejecutable; las maquetas de `docs/prototipos/` se conservan como referencia visual, pero **no son servidas por el router**.
 
 ## Rúbricas trabajadas
 
 | Rúbrica | Puntaje | Situación actual |
 | --- | --- | --- |
 | Portal en operación | 16 | Completo: catálogo, detalle, niveles, inscripción, avance, baja lógica, reportes, categorías, comentarios, mensajería y logout vía `fetch`. |
-| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15, 16 y 17). |
+| API propia integrada | 12 | Implementada: flujos reales con `fetch` y colección Postman (carpetas 15 a 19). |
 | Reportes con filtros | 10 | Implementados: reporte general admin y de ventas por instructor, con filtros y formatos. |
 | Inyección de dependencias | 10 | Completa: contenedor, servicios inyectados, modelos con PDO y `Controller::model()` eliminado. |
 | Módulo de administrador | 8 | Implementado: bloqueo/reactivación, gestión de cursos, categorías y moderación de comentarios. |
 | Interacción y búsqueda | 8 | Implementada: búsqueda global por título/descripción/categoría, comentarios con promedio y mensajería interna. |
 | Pagos y certificado | 8 | Implementados: compra simulada, confirmación, avance por nivel, diploma automático y verificación por código. |
-| Seguridad | 8 | Base sólida: CSRF condicional en API, control de acceso, validación de entrada y logout vía `fetch` con fallback web. |
-| Mensajes y avisos | 6 | Completos: flash/éxito/error, avisos con `SoscurApi` y confirmación antes de eliminar. |
+| Seguridad | 8 | Completa: política de acceso denegar por defecto, CORS, CSRF condicional en API y obligatorio en formularios web, validación de entradas, URL seguras y logout vía `fetch` con fallback web. |
+| Mensajes y avisos | 6 | Completos: flash de éxito, avisos con `SoscurApi` y confirmación antes de logout, bajas, eliminación de niveles y moderación. |
 
 ## Decisiones técnicas acordadas
 
@@ -29,8 +29,9 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 - **Certificado:** vista HTML imprimible con código de verificación; no se añade Composer.
 - **Baja lógica:** se usa `cursos.estatus` (`activo`/`inactivo`); no se borran filas porque las FK usan `ON DELETE CASCADE`.
 - **Formatos:** fechas `dd/mm/yyyy` y moneda MXN con `$` y dos decimales. PHP no tiene `intl`, así que se usa `number_format()` en servidor; el navegador conserva `Intl.NumberFormat`.
-- **CSRF en API:** se exige token solo cuando la petición parece del navegador (`Sec-Fetch-Site`/`Origin`). Postman y curl siguen funcionando sin token.
-- **Commits:** uno por fase, con mensaje descriptivo.
+- **CSRF:** en API se exige token solo cuando la petición parece del navegador (`Sec-Fetch-Site`/`Origin`); en formularios web se valida siempre el token. Postman y curl siguen funcionando sin token en la API.
+- **Acceso:** `app/config/access.php` es denegar por defecto; una ruta nueva debe agregarse explícitamente con roles o con la marca `'public'`.
+- **Commits:** uno por fase; Fase 5 se entrega en un único commit con todos los ajustes de auditoría.
 
 ## Plan por fases
 
@@ -41,8 +42,21 @@ La base de datos ya modela cursos, niveles, inscripciones, avance, comentarios y
 | 2 | Reportes con filtros y formatos | Completada |
 | 3 | CRUD de categorías, moderación de comentarios, comentarios/promedio, mensajería y búsqueda ampliada | Completada |
 | 4 | Canje de token, tabla admin y logout vía `fetch` | Completada |
+| 5 | Auditoría final: DI estricta, denegar por defecto, seguridad, Kardex, edición de curso/nivel, pestañas de reportes y avisos | Completada |
 
 ## Registro de avances
+
+### Fase 5 — Auditoría final y cierre de brechas
+
+- Inyección de dependencias estricta: contratos para repositorios, servicios y middleware; `bindings.php` registra `PDO`, repositorios, servicios y fábricas. Modelos y servicios ya no crean conexiones propias y `Auth`/`CourseService` fallan explícitamente si falta una dependencia.
+- `Router` resuelve middleware y controladores desde el contenedor. `access.php` pasó a **denegar por defecto**: cada ruta declara roles o la marca `'public'`, y una política ausente se registra en `error_log` antes de denegar.
+- Seguridad: CORS incluye `DELETE` y `X-CSRF-Token`; `CsrfWebMiddleware` protege formularios web; se validan URL de video/material, longitud de `imagen` y código de diploma, límite de 1 MiB en JSON, roles en vistas sensibles, courses activos en mensajería y vista `errors/404.php` para cursos inactivos.
+- Portal: `public/js/course-gestion.js` permite editar curso y nivel con `GET /cursos/gestion/{id}` y `PATCH`; el detalle público muestra precios en MXN, enlace de material y leyenda de comentarios moderados.
+- Kardex nuevo: rutas `/kardex` y `/api/v1/kardex`, `KardexService`, vista con resumen, progreso y columna `Completado` en `dd/mm/yyyy`.
+- Reportes: la vista admin usa pestañas «Ventas por curso» y «Desglose por alumno» en la misma ruta; `tab` se conserva al aplicar filtros y al paginar.
+- Avisos: confirmación antes de cerrar sesión y en acciones destructivas; flash de éxito para categorías, comentarios, mensajes y logout; `showAlert()` tras publicar un comentario.
+- Colección Postman ampliada con la carpeta 19 (5 peticiones): kardex, detalle de gestión, reportes con `tab`, preflight CORS y CSRF de API con `Origin`.
+- Verificación: 121 archivos PHP con `php -l`, 17 scripts con `node --check`, carga de clases `OK`, sustitución DI `OK`, JSON de Postman válido (19 carpetas; 5 peticiones en la Fase 5), `git diff --check` sin errores, migraciones 002/003/004 en BD temporal y smoke HTTP 31/31: API base, login admin, filtro/orden/paginación, metadatos, sin coincidencias, parámetros inválidos, vista admin, login sin verificar, dashboard de canje, canje exitoso, aviso oculto, token ya usado, login de estudiante demo, Kardex API y web, detalle de gestión, reportes con pestañas, leyenda de moderación, detalle público con MXN y leyenda, CSRF web sin token, logout con `Origin` sin CSRF, sesión activa tras `403`, token CSRF web, logout web fallback, logout API, sesión cerrada, logout sin sesión y log PHP limpio.
 
 ### Fase 4 — Logout fetch, canje de token y tabla admin
 

@@ -4,34 +4,34 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Config\Database;
-use App\Models\Curso;
-use App\Models\Inscripcion;
-use App\Models\MetodoPago;
-use App\Models\Nivel;
-use App\Models\Orden;
-use App\Models\Pago;
-use App\Models\ProgresoNivel;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Models\Contracts\DiplomaRepositoryInterface;
+use App\Models\Contracts\InscripcionRepositoryInterface;
+use App\Models\Contracts\MetodoPagoRepositoryInterface;
+use App\Models\Contracts\NivelRepositoryInterface;
+use App\Models\Contracts\OrdenRepositoryInterface;
+use App\Models\Contracts\PagoRepositoryInterface;
+use App\Models\Contracts\ProgresoNivelRepositoryInterface;
+use App\Services\Contracts\DiplomaServiceInterface;
+use App\Services\Contracts\InscripcionServiceInterface;
+use App\Services\Contracts\PagoServiceInterface;
 use PDO;
 use Throwable;
 
-final class InscripcionService
+final class InscripcionService implements InscripcionServiceInterface
 {
-    private readonly PDO $db;
-
     public function __construct(
-        private readonly Inscripcion $inscripciones,
-        private readonly Curso $cursos,
-        private readonly Nivel $niveles,
-        private readonly MetodoPago $metodosPago,
-        private readonly Orden $ordenes,
-        private readonly Pago $pagos,
-        private readonly ProgresoNivel $progreso,
-        private readonly PagoService $pagoService,
-        private readonly DiplomaService $diplomaService,
-        ?PDO $db = null
+        private readonly InscripcionRepositoryInterface $inscripciones,
+        private readonly CursoRepositoryInterface $cursos,
+        private readonly NivelRepositoryInterface $niveles,
+        private readonly MetodoPagoRepositoryInterface $metodosPago,
+        private readonly OrdenRepositoryInterface $ordenes,
+        private readonly PagoRepositoryInterface $pagos,
+        private readonly ProgresoNivelRepositoryInterface $progreso,
+        private readonly PagoServiceInterface $pagoService,
+        private readonly DiplomaServiceInterface $diplomaService,
+        private readonly PDO $db
     ) {
-        $this->db = $db ?? Database::getConnection();
     }
 
     public function metodosPago(): array

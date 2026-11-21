@@ -6,14 +6,14 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Helpers\Auth;
-use App\Services\ComentarioService;
-use App\Services\CourseService;
+use App\Services\Contracts\ComentarioServiceInterface;
+use App\Services\Contracts\CourseServiceInterface;
 
 class ModeracionController extends Controller
 {
     public function __construct(
-        private readonly ComentarioService $comentarios,
-        private readonly CourseService $courses
+        private readonly ComentarioServiceInterface $comentarios,
+        private readonly CourseServiceInterface $courses
     ) {
     }
 

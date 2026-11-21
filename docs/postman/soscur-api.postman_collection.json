@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "SOSCUR API v1",
-        "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). La carpeta 15 cubre Fase 1: detalle de curso, niveles, compra simulada, confirmación de pago, avance, certificado y verificación. La carpeta 16 cubre Fase 2: reportes con filtros, validación y alcance por rol. La carpeta 17 cubre Fase 3: búsqueda ampliada, comentarios, promedio, moderación, mensajería y CRUD de categorías. La carpeta 18 cubre Fase 4: logout con CSRF condicional, canje de token de verificación y tabla admin con búsqueda, orden y paginación. Aplica migrations/002, migrations/003 y migrations/004 antes de ejecutarla.",
+        "description": "Pruebas de los endpoints de /api/v1. Ejecutar en orden: las peticiones de POST /cursos dependen de la sesión que deja el login (Postman guarda la cookie PHPSESSID). La carpeta 15 cubre Fase 1: detalle de curso, niveles, compra simulada, confirmación de pago, avance, certificado y verificación. La carpeta 16 cubre Fase 2: reportes con filtros, validación y alcance por rol. La carpeta 17 cubre Fase 3: búsqueda ampliada, comentarios, promedio, moderación, mensajería y CRUD de categorías. La carpeta 18 cubre Fase 4: logout con CSRF condicional, canje de token de verificación y tabla admin con búsqueda, orden y paginación. La carpeta 19 cubre Fase 5: kardex, detalle de gestión para edición, reportes con pestaña activa y preflight CORS con DELETE/X-CSRF-Token. Aplica migrations/002, migrations/003 y migrations/004 antes de ejecutarla.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -2299,6 +2299,100 @@
                             "raw": "{{baseUrl}}/logout",
                             "host": ["{{baseUrl}}"],
                             "path": ["logout"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                    ] } }]
+                }
+            ]
+        },
+        {
+            "name": "19. Fase 5: kardex, edicion y seguridad",
+            "item": [
+                {
+                    "name": "19.1 GET kardex estudiante (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/kardex",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["kardex"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Kardex completo', () => { const json = pm.response.json(); pm.expect(json.data).to.have.property('resumen'); pm.expect(json.data.inscripciones).to.be.an('array'); });"
+                    ] } }]
+                },
+                {
+                    "name": "19.2 GET detalle gestion de curso (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/cursos/gestion/{{cursoId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["cursos", "gestion", "{{cursoId}}"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Detalle editable', () => { const json = pm.response.json(); pm.expect(json).to.have.property('curso'); pm.expect(json.curso.niveles).to.be.an('array'); });"
+                    ] } }]
+                },
+                {
+                    "name": "19.3 GET reportes con tab activo (200)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/reportes?tab=alumnos",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["reportes"],
+                            "query": [{ "key": "tab", "value": "alumnos" }]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                        "pm.test('Estructura de reporte', () => { const json = pm.response.json(); pm.expect(json).to.have.property('resumen'); pm.expect(json.detalle).to.be.an('array'); });"
+                    ] } }]
+                },
+                {
+                    "name": "19.4 OPTIONS preflight DELETE con X-CSRF-Token (204)",
+                    "request": {
+                        "method": "OPTIONS",
+                        "header": [
+                            { "key": "Origin", "value": "{{corsAllowedOrigin}}" },
+                            { "key": "Access-Control-Request-Method", "value": "DELETE" },
+                            { "key": "Access-Control-Request-Headers", "value": "X-CSRF-Token" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/cursos",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["cursos"]
+                        }
+                    },
+                    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+                        "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                        "pm.test('DELETE permitido', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Methods')).to.include('DELETE'));",
+                        "pm.test('X-CSRF-Token permitido', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Headers')).to.include('X-CSRF-Token'));"
+                    ] } }]
+                },
+                {
+                    "name": "19.5 POST perfil con Origin sin CSRF (403)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Origin", "value": "{{corsAllowedOrigin}}" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{}" },
+                        "url": {
+                            "raw": "{{baseUrl}}/perfil",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["perfil"]
                         }
                     },
                     "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [

@@ -6,9 +6,9 @@ namespace App\Controllers;
 
 use App\Core\JsonController;
 use App\Helpers\Session;
-use App\Models\Categoria;
-use App\Models\Curso;
-use App\Models\Usuario;
+use App\Models\Contracts\CategoriaRepositoryInterface;
+use App\Models\Contracts\CursoRepositoryInterface;
+use App\Models\Contracts\UsuarioRepositoryInterface;
 
 class ApiController extends JsonController
 {
@@ -21,9 +21,9 @@ class ApiController extends JsonController
     private const MAX_LIMIT = 100;
 
     public function __construct(
-        private readonly Categoria $categorias,
-        private readonly Curso $cursos,
-        private readonly Usuario $usuarios
+        private readonly CategoriaRepositoryInterface $categorias,
+        private readonly CursoRepositoryInterface $cursos,
+        private readonly UsuarioRepositoryInterface $usuarios
     ) {
     }
 

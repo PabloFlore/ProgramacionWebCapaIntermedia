@@ -21,6 +21,8 @@ use App\Controllers\CategoriaController;
 use App\Controllers\CourseController;
 use App\Controllers\HomeController;
 use App\Controllers\InscripcionController;
+use App\Controllers\ApiKardexController;
+use App\Controllers\KardexController;
 use App\Controllers\MensajeController;
 use App\Controllers\ModeracionController;
 use App\Controllers\ReporteController;
@@ -36,7 +38,7 @@ Session::start();
 $container = new Container();
 (require dirname(__DIR__) . '/app/config/bindings.php')($container);
 Auth::setUserRepository($container->get(UsuarioRepositoryInterface::class));
-$router = new Router(null, $container);
+$router = new Router($container);
 
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/home', [HomeController::class, 'index']);
@@ -62,6 +64,7 @@ $router->post('/admin/usuarios/{id}/reactivar', [UserController::class, 'reactiv
 $router->get('/curso/{id}', [CourseController::class, 'show']);
 $router->get('/admin/cursos', [CourseController::class, 'gestion']);
 $router->get('/mis-cursos', [InscripcionController::class, 'index']);
+$router->get('/kardex', [KardexController::class, 'index']);
 $router->get('/diploma/{id}', [InscripcionController::class, 'diploma']);
 $router->get('/verificar-diploma', [InscripcionController::class, 'verificar']);
 $router->get('/reportes', [ReporteController::class, 'index']);
@@ -77,6 +80,7 @@ $router->get('/api/v1/mensajes/destinatarios', [ApiMensajeController::class, 'de
 $router->post('/api/v1/mensajes', [ApiMensajeController::class, 'crear']);
 $router->patch('/api/v1/mensajes/{id}/leido', [ApiMensajeController::class, 'marcarLeido']);
 $router->get('/api/v1/cursos/gestion', [ApiCourseController::class, 'gestion']);
+$router->get('/api/v1/cursos/gestion/{id}', [ApiCourseController::class, 'gestionDetalle']);
 $router->get('/api/v1/cursos/{id}', [ApiCourseController::class, 'detalle']);
 $router->get('/api/v1/cursos/{id}/comentarios', [ApiComentarioController::class, 'listar']);
 $router->post('/api/v1/cursos/{id}/comentarios', [ApiComentarioController::class, 'crear']);
@@ -91,6 +95,7 @@ $router->delete('/api/v1/niveles/{id}', [ApiCourseController::class, 'eliminarNi
 $router->get('/api/v1/metodos-pago', [ApiInscripcionController::class, 'metodosPago']);
 $router->post('/api/v1/inscripciones', [ApiInscripcionController::class, 'comprar']);
 $router->get('/api/v1/mis-cursos', [ApiInscripcionController::class, 'misCursos']);
+$router->get('/api/v1/kardex', [ApiKardexController::class, 'index']);
 $router->post('/api/v1/pagos/{id}/confirmar', [ApiInscripcionController::class, 'confirmarPago']);
 $router->post('/api/v1/inscripciones/{id}/niveles/{nivelId}/completar', [ApiInscripcionController::class, 'completarNivel']);
 $router->get('/api/v1/inscripciones/{id}/diploma', [ApiInscripcionController::class, 'diploma']);

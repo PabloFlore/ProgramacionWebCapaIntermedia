@@ -6,8 +6,9 @@ namespace App\Services;
 
 use App\Helpers\Upload;
 use App\Models\Contracts\UsuarioRepositoryInterface;
+use App\Services\Contracts\UserServiceInterface;
 
-final class UserService
+final class UserService implements UserServiceInterface
 {
     private const GENEROS = ['femenino', 'masculino', 'prefiero_no_decir'];
 

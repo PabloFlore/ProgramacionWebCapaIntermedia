@@ -7,16 +7,16 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Helpers\Auth;
 use App\Helpers\Session;
-use App\Models\Categoria;
-use App\Services\CourseService;
-use App\Services\ReporteService;
+use App\Models\Contracts\CategoriaRepositoryInterface;
+use App\Services\Contracts\CourseServiceInterface;
+use App\Services\Contracts\ReporteServiceInterface;
 
 class ReporteController extends Controller
 {
     public function __construct(
-        private readonly ReporteService $reportes,
-        private readonly Categoria $categorias,
-        private readonly CourseService $courses
+        private readonly ReporteServiceInterface $reportes,
+        private readonly CategoriaRepositoryInterface $categorias,
+        private readonly CourseServiceInterface $courses
     ) {
     }
 
@@ -26,6 +26,12 @@ class ReporteController extends Controller
 
         if ($usuario === null) {
             $this->redirect('login');
+            return;
+        }
+
+        if (!Auth::hasRole(['instructor', 'admin'])) {
+            http_response_code(403);
+            require __DIR__ . '/../views/errors/403.php';
             return;
         }
 
@@ -49,7 +55,7 @@ class ReporteController extends Controller
 
     private function valorFiltros(): array
     {
-        $campos = ['desde', 'hasta', 'curso_id', 'categoria_id', 'estado_pago', 'rol', 'bloqueado', 'pagina', 'limite'];
+        $campos = ['desde', 'hasta', 'curso_id', 'categoria_id', 'estado_pago', 'rol', 'bloqueado', 'pagina', 'limite', 'tab'];
         $valores = [];
 
         foreach ($campos as $campo) {

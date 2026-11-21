@@ -10,15 +10,15 @@ use App\Helpers\Auth;
 use App\Helpers\Csrf;
 use App\Helpers\Session;
 use App\Helpers\Upload;
-use App\Services\AuthService;
-use App\Services\UserService;
+use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\UserServiceInterface;
 
 class AuthController extends Controller
 {
-    private AuthService $authService;
-    private UserService $userService;
+    private AuthServiceInterface $authService;
+    private UserServiceInterface $userService;
 
-    public function __construct(AuthService $authService, UserService $userService)
+    public function __construct(AuthServiceInterface $authService, UserServiceInterface $userService)
     {
         $this->authService = $authService;
         $this->userService = $userService;
